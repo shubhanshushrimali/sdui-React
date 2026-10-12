@@ -35,7 +35,9 @@ jobs:
         run: npm ci
 
       - name: Export Expo Web Bundle
-        run: npm run export:web
+        run: |
+          npm run export:web
+          touch dist/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

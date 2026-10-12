@@ -35,6 +35,7 @@
       ]
     ],
     "experiments": {
+      "baseUrl": "/sdui-React",
       "typedRoutes": true,
       "reactCompiler": true
     }
