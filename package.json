@@ -41,7 +41,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "test:schemas": "node ./scripts/validate-schemas.js",
+    "export:web": "expo export --platform web"
   },
   "private": true
 }
