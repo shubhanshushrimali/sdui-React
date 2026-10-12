@@ -34,7 +34,7 @@ export const FloatingCartBar: React.FC<{ onPress?: () => void }> = ({ onPress })
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 74,
     left: 16,
     right: 16,
     zIndex: 999,
