@@ -1,0 +1,226 @@
+{
+  "screenId": "home",
+  "version": 2,
+  "metadata": {
+    "title": "Home",
+    "analytics": { "screenName": "home_v2" },
+    "cachePolicy": "stale-while-revalidate",
+    "cacheTTL": 300
+  },
+  "root": {
+    "type": "ScrollView",
+    "props": { "showsIndicators": false },
+    "style": { "backgroundColor": "#0B0F19" },
+    "children": [
+      {
+        "type": "Spacer",
+        "props": { "size": 16 }
+      },
+      {
+        "type": "HeroBanner",
+        "props": {
+          "title": "Discover Future Realities, {{user.name}}",
+          "subtitle": "Curated collection of next-gen gadgets and digital collectibles.",
+          "badgeText": "🔥 Live Drop #42",
+          "ctaText": "Browse Catalog",
+          "backgroundImage": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80"
+        },
+        "actions": {
+          "onPress": {
+            "type": "navigate",
+            "payload": { "screen": "explore" }
+          }
+        }
+      },
+      {
+        "type": "View",
+        "style": {
+          "flexDirection": "row",
+          "paddingHorizontal": 16,
+          "marginVertical": 8,
+          "gap": 12
+        },
+        "children": [
+          {
+            "type": "MetricCard",
+            "props": {
+              "label": "Credits Available",
+              "value": "${{user.walletBalance}}",
+              "change": "12%",
+              "isPositive": true
+            }
+          },
+          {
+            "type": "MetricCard",
+            "props": {
+              "label": "Reward Tier",
+              "value": "{{user.tier}}",
+              "change": "Top 5%",
+              "isPositive": true
+            }
+          }
+        ]
+      },
+      {
+        "type": "ConditionalRender",
+        "condition": {
+          "expression": "{{user.isPremium}}"
+        },
+        "ifTrue": {
+          "type": "PremiumBanner",
+          "props": {
+            "title": "Elite Pro Access Active",
+            "message": "You receive priority order dispatch, 0% platform transaction fees, and 24/7 concierge."
+          }
+        },
+        "ifFalse": {
+          "type": "UpgradeCTA",
+          "props": {
+            "title": "Level Up To Pro",
+            "message": "Unlock secret drops, instant delivery, and exclusive community events.",
+            "buttonText": "Try Pro Membership"
+          }
+        }
+      },
+      {
+        "type": "ChipGroup",
+        "props": {
+          "chips": [
+            { "id": "All", "label": "⚡ All Gear" },
+            { "id": "Audio", "label": "🎧 Audio" },
+            { "id": "Wearables", "label": "⌚ Wearables" },
+            { "id": "Vision", "label": "🥽 Vision" }
+          ]
+        }
+      },
+      {
+        "type": "SectionHeader",
+        "props": {
+          "title": "Trending Hardware",
+          "subtitle": "High demand items this week",
+          "showSeeAll": true
+        },
+        "actions": {
+          "onSeeAll": {
+            "type": "navigate",
+            "payload": { "screen": "explore" }
+          }
+        }
+      },
+      {
+        "type": "HorizontalList",
+        "props": { "itemSpacing": 14 },
+        "dataSource": {
+          "type": "local",
+          "data": [
+            {
+              "id": "prod_1",
+              "title": "Neural Audio Pro X",
+              "price": "$299",
+              "originalPrice": "$350",
+              "rating": "4.9",
+              "tag": "HOT",
+              "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80"
+            },
+            {
+              "id": "prod_2",
+              "title": "HoloLens Cyber Glare",
+              "price": "$549",
+              "originalPrice": "$699",
+              "rating": "5.0",
+              "tag": "NEW",
+              "image": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&q=80"
+            },
+            {
+              "id": "prod_3",
+              "title": "Chronos Spatial Watch",
+              "price": "$380",
+              "originalPrice": "$420",
+              "rating": "4.8",
+              "tag": "LIMITED",
+              "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"
+            }
+          ]
+        },
+        "itemTemplate": {
+          "type": "ProductCard",
+          "props": {
+            "id": "{{item.id}}",
+            "title": "{{item.title}}",
+            "price": "{{item.price}}",
+            "originalPrice": "{{item.originalPrice}}",
+            "rating": "{{item.rating}}",
+            "tag": "{{item.tag}}",
+            "image": "{{item.image}}"
+          },
+          "actions": {
+            "onPress": {
+              "type": "navigate",
+              "payload": {
+                "screen": "explore",
+                "params": { "id": "{{item.id}}" }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "SectionHeader",
+        "props": {
+          "title": "Curated Staff Picks",
+          "subtitle": "Hand-tested by engineering team"
+        }
+      },
+      {
+        "type": "VerticalList",
+        "props": { "gap": 12 },
+        "dataSource": {
+          "type": "local",
+          "data": [
+            {
+              "id": "prod_4",
+              "title": "AeroKey Mechanical Board",
+              "price": "$179",
+              "rating": "4.9",
+              "tag": "BESTSELLER",
+              "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&q=80"
+            },
+            {
+              "id": "prod_5",
+              "title": "Titanium Wireless Pad",
+              "price": "$89",
+              "rating": "4.7",
+              "tag": "ESSENTIAL",
+              "image": "https://images.unsplash.com/photo-1622445262464-84b1456045b6?w=500&q=80"
+            }
+          ]
+        },
+        "itemTemplate": {
+          "type": "ProductCard",
+          "style": { "width": "100%" },
+          "props": {
+            "id": "{{item.id}}",
+            "title": "{{item.title}}",
+            "price": "{{item.price}}",
+            "rating": "{{item.rating}}",
+            "tag": "{{item.tag}}",
+            "image": "{{item.image}}"
+          },
+          "actions": {
+            "onPress": {
+              "type": "showToast",
+              "payload": {
+                "title": "Staff Pick Selected",
+                "message": "{{item.title}} has been added to your wishlist!"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "Spacer",
+        "props": { "size": 32 }
+      }
+    ]
+  }
+}

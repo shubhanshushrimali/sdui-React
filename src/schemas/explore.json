@@ -1,0 +1,128 @@
+{
+  "screenId": "explore",
+  "version": 1,
+  "metadata": {
+    "title": "Explore & Live SDUI",
+    "analytics": { "screenName": "explore_v1" },
+    "cachePolicy": "stale-while-revalidate",
+    "cacheTTL": 120
+  },
+  "root": {
+    "type": "ScrollView",
+    "props": { "showsIndicators": false },
+    "style": { "backgroundColor": "#0B0F19" },
+    "children": [
+      {
+        "type": "Spacer",
+        "props": { "size": 16 }
+      },
+      {
+        "type": "SectionHeader",
+        "props": {
+          "title": "Explore Dynamic SDUI",
+          "subtitle": "Everything on this screen is 100% server driven"
+        }
+      },
+      {
+        "type": "View",
+        "style": {
+          "backgroundColor": "#111827",
+          "padding": 16,
+          "borderRadius": 16,
+          "marginHorizontal": 16,
+          "marginVertical": 8,
+          "borderWidth": 1,
+          "borderColor": "#1F2937"
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "💡 How Server-Driven UI Works"
+            },
+            "style": {
+              "color": "#22D3EE",
+              "fontSize": 16,
+              "fontWeight": "700",
+              "marginBottom": 6
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "1. Client requests screen ID from Firebase or API\n2. Server returns JSON schema describing the UI tree\n3. SDUIRenderer recurses through components\n4. Actions, templates ({{user.name}}), & state are bound on-device\n5. Change the UI anytime without rebuilding the app!"
+            },
+            "style": {
+              "color": "#94A3B8",
+              "fontSize": 13,
+              "lineHeight": 20
+            }
+          }
+        ]
+      },
+      {
+        "type": "SectionHeader",
+        "props": {
+          "title": "Interactive Controls",
+          "subtitle": "Test runtime SDUI behavior"
+        }
+      },
+      {
+        "type": "View",
+        "style": {
+          "paddingHorizontal": 16,
+          "gap": 10
+        },
+        "children": [
+          {
+            "type": "Button",
+            "props": {
+              "title": "⚡ Trigger Remote Alert Action",
+              "variant": "primary"
+            },
+            "actions": {
+              "onPress": {
+                "type": "showToast",
+                "payload": {
+                  "title": "Action Dispatch Success",
+                  "message": "This native alert was dispatched from the JSON schema action: showToast!"
+                }
+              }
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "title": "🌐 Open GitHub Repository",
+              "variant": "secondary"
+            },
+            "actions": {
+              "onPress": {
+                "type": "openUrl",
+                "payload": {
+                  "url": "https://github.com/shubhanshushrimali/sdui-React"
+                }
+              }
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "title": "← Return to Home",
+              "variant": "outline"
+            },
+            "actions": {
+              "onPress": {
+                "type": "goBack"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "Spacer",
+        "props": { "size": 32 }
+      }
+    ]
+  }
+}
