@@ -9,80 +9,111 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { useSDUIScreen } from '../hooks/useSDUIScreen';
 import { SDUIRenderer } from '../sdui/SDUIRenderer';
 import { themeTokens, palette } from '../theme/tokens';
 
 export default function ExploreScreen() {
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 640;
+
   const { screen, loading, error, refresh } = useSDUIScreen('explore');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
+    <View style={styles.outerBackground}>
+      <StatusBar barStyle="light-content" backgroundColor="#070B14" />
 
-      {/* Top Header Bar */}
-      <View style={styles.headerBar}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logoBadge}>SDUI</Text>
-          <View>
-            <Text style={styles.headerTitle}>Architecture & Guide</Text>
-            <Text style={styles.headerSubtitle}>v{screen?.version ?? 1} • Interactive Docs</Text>
+      {/* Responsive Container for Tablets & Desktops */}
+      <View style={[styles.responsiveShell, isLargeScreen && styles.responsiveShellDesktop]}>
+        <SafeAreaView style={styles.safeArea}>
+          {/* Top Header Bar */}
+          <View style={styles.headerBar}>
+            <View style={styles.headerLeft}>
+              <View style={styles.logoBadge}>
+                <Text style={styles.logoBadgeText}>SDUI</Text>
+              </View>
+              <View>
+                <Text style={styles.headerTitle}>Architecture & Guide</Text>
+                <Text style={styles.headerSubtitle}>v{screen?.version ?? 1} • Interactive Docs</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.refreshBtn}
+              onPress={refresh}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.refreshBtnText}>🔄</Text>
+            </TouchableOpacity>
           </View>
-        </View>
 
-        <TouchableOpacity
-          style={styles.refreshBtn}
-          onPress={refresh}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.refreshBtnText}>🔄</Text>
-        </TouchableOpacity>
+          {/* Main Content Area */}
+          {loading && !screen ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text style={styles.loadingText}>Loading Explore Schema...</Text>
+            </View>
+          ) : error ? (
+            <ScrollView
+              contentContainerStyle={styles.centerContainer}
+              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+            >
+              <Text style={styles.errorText}>Error: {error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : screen ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.scrollBody}
+              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+            >
+              <SDUIRenderer node={screen.root} />
+            </ScrollView>
+          ) : null}
+        </SafeAreaView>
       </View>
-
-      {/* Main Content Area */}
-      {loading && !screen ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={palette.cyan400} />
-          <Text style={styles.loadingText}>Loading Explore Schema...</Text>
-        </View>
-      ) : error ? (
-        <ScrollView
-          contentContainerStyle={styles.centerContainer}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={palette.cyan400} />}
-        >
-          <Text style={styles.errorText}>Error: {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      ) : screen ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={styles.scrollBody}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={palette.cyan400} />}
-        >
-          <SDUIRenderer node={screen.root} />
-        </ScrollView>
-      ) : null}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerBackground: {
+    flex: 1,
+    backgroundColor: '#030712',
+  },
+  responsiveShell: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#070B14',
+  },
+  responsiveShellDesktop: {
+    maxWidth: 540,
+    alignSelf: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#1F2937',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#070B14',
   },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: themeTokens.spacing.lg,
-    paddingVertical: themeTokens.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
-    backgroundColor: '#0B0F19',
+    borderBottomColor: '#1A2333',
+    backgroundColor: '#0A0F1D',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -90,13 +121,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoBadge: {
-    backgroundColor: palette.cyan500,
-    color: '#0B0F19',
-    fontWeight: '900',
-    fontSize: 12,
+    backgroundColor: '#10B981',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: themeTokens.radius.sm,
+    borderRadius: 6,
+  },
+  logoBadgeText: {
+    color: '#070B14',
+    fontWeight: '900',
+    fontSize: 12,
     letterSpacing: 0.5,
   },
   headerTitle: {
@@ -106,7 +139,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: themeTokens.colors.textMuted,
+    color: '#94A3B8',
     fontSize: 11,
     fontWeight: '500',
   },
@@ -118,34 +151,34 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#070B14',
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: themeTokens.spacing.xl,
+    padding: 24,
   },
   loadingText: {
-    color: themeTokens.colors.textSecondary,
+    color: '#94A3B8',
     fontSize: 14,
     marginTop: 12,
     fontWeight: '500',
   },
   errorText: {
-    color: themeTokens.colors.error,
+    color: palette.rose500,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: palette.primary600,
+    backgroundColor: '#10B981',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: themeTokens.radius.md,
+    borderRadius: 8,
   },
   retryButtonText: {
-    color: palette.white,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

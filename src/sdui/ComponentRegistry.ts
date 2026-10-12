@@ -19,6 +19,9 @@ import { MetricCard } from '../components/composites/MetricCard';
 import { UpgradeCTA } from '../components/composites/UpgradeCTA';
 import { PremiumBanner } from '../components/composites/PremiumBanner';
 import { Button } from '../components/composites/Button';
+import { SwiggyHeader } from '../components/composites/SwiggyHeader';
+import { CategoryStoryCircles } from '../components/composites/CategoryStoryCircles';
+import { RestaurantDishCard } from '../components/composites/RestaurantDishCard';
 
 // Conditional
 import { ConditionalRender } from '../components/conditional/ConditionalRender';
@@ -56,6 +59,11 @@ class ComponentRegistryManager {
     this.register('UpgradeCTA', UpgradeCTA);
     this.register('PremiumBanner', PremiumBanner);
     this.register('Button', Button);
+
+    // Swiggy & Zomato Components
+    this.register('SwiggyHeader', SwiggyHeader);
+    this.register('CategoryStoryCircles', CategoryStoryCircles);
+    this.register('RestaurantDishCard', RestaurantDishCard);
 
     // Conditional
     this.register('ConditionalRender', ConditionalRender as any);

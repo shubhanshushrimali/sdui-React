@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, isFirebaseConfigured } from './firebase';
 import { SDUIScreen } from '../sdui/types';
 import { validateSDUIScreen } from '../sdui/SchemaValidator';
 
@@ -20,8 +20,8 @@ export async function fetchSDUIScreen(screenId: string): Promise<SDUIScreen> {
   const cacheKey = `${CACHE_PREFIX}${screenId}`;
   const cacheTimeKey = `${CACHE_TIME_PREFIX}${screenId}`;
 
-  // 1. Try reading from Firebase Firestore if connected
-  if (db) {
+  // 1. Try reading from Firebase Firestore if connected and configured
+  if (isFirebaseConfigured && db) {
     try {
       const docRef = doc(db, 'sdui_screens', screenId);
       const snapshot = await getDoc(docRef);

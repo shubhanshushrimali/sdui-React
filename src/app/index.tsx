@@ -12,22 +12,25 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
+  useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { useSDUIScreen } from '../hooks/useSDUIScreen';
 import { SDUIRenderer } from '../sdui/SDUIRenderer';
 import { useUserStore } from '../store/useUserStore';
 import { useAppStore } from '../store/useAppStore';
+import { FloatingCartBar } from '../components/composites/FloatingCartBar';
 import { themeTokens, palette } from '../theme/tokens';
 import homeSchema from '../schemas/home.json';
 
 const FINTECH_PRESET = {
   screenId: "home",
-  version: 3,
+  version: 4,
   metadata: { title: "Crypto & Wealth" },
   root: {
     type: "ScrollView",
     props: { showsIndicators: false },
-    style: { backgroundColor: "#0B0F19" },
+    style: { backgroundColor: "#070B14" },
     children: [
       { type: "Spacer", props: { size: 16 } },
       {
@@ -73,18 +76,22 @@ const FINTECH_PRESET = {
           props: { id: "{{item.id}}", title: "{{item.title}}", price: "{{item.price}}", tag: "{{item.tag}}", image: "{{item.image}}" }
         }
       },
-      { type: "Spacer", props: { size: 30 } }
+      { type: "Spacer", props: { size: 40 } }
     ]
   }
 };
 
 export default function HomeScreen() {
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 640;
+
   const { screen, loading, error, refresh } = useSDUIScreen('home');
   const user = useUserStore((state) => state.user);
   const togglePremium = useUserStore((state) => state.togglePremium);
 
   const setLiveCustomSchema = useAppStore((state) => state.setLiveCustomSchema);
   const liveCustomSchema = useAppStore((state) => state.liveCustomSchema);
+  const cartCount = useAppStore((state) => state.cartCount);
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editorText, setEditorText] = useState(
@@ -114,67 +121,82 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0F19" />
+    <View style={styles.outerBackground}>
+      <StatusBar barStyle="light-content" backgroundColor="#070B14" />
 
-      {/* Top Header Bar */}
-      <View style={styles.headerBar}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.logoBadge}>SDUI</Text>
-          <View>
-            <Text style={styles.headerTitle}>Engine</Text>
-            <Text style={styles.headerSubtitle}>v{screen?.version ?? 1} • Server-Driven</Text>
+      {/* Responsive Container: Centers and constrains layout on Desktop & Tablet */}
+      <View style={[styles.responsiveShell, isLargeScreen && styles.responsiveShellDesktop]}>
+        <SafeAreaView style={styles.safeArea}>
+          {/* Top Engine Control Bar */}
+          <View style={styles.engineBar}>
+            <View style={styles.engineLeft}>
+              <View style={styles.brandBadge}>
+                <Text style={styles.brandBadgeText}>SDUI</Text>
+              </View>
+              <Text style={styles.engineTitle}>Swiggy & Zomato Edition</Text>
+            </View>
+
+            <View style={styles.engineRight}>
+              <TouchableOpacity
+                style={[styles.vipPill, user.isPremium && styles.vipPillActive]}
+                onPress={togglePremium}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.vipPillText}>
+                  {user.isPremium ? '👑 GOLD' : '⚡ FREE'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.editorButton}
+                onPress={() => setEditorVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.editorButtonText}>{'{ }'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        <View style={styles.headerRight}>
-          {/* User Tier Toggle Button */}
-          <TouchableOpacity
-            style={[styles.tierButton, user.isPremium && styles.tierButtonActive]}
-            onPress={togglePremium}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.tierButtonText}>
-              {user.isPremium ? '👑 VIP' : '⚡ FREE'}
-            </Text>
-          </TouchableOpacity>
+          {/* Main SDUI Render Stream */}
+          {loading && !screen ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text style={styles.loadingText}>Fetching SDUI Schema...</Text>
+            </View>
+          ) : error ? (
+            <ScrollView
+              contentContainerStyle={styles.centerContainer}
+              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+            >
+              <Text style={styles.errorText}>Error: {error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : screen ? (
+            <View style={styles.viewportWrapper}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollBody}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+              >
+                <SDUIRenderer node={screen.root} />
+              </ScrollView>
 
-          {/* JSON Live Editor Button */}
-          <TouchableOpacity
-            style={styles.editorButton}
-            onPress={() => setEditorVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.editorButtonText}>{'{ }'}</Text>
-          </TouchableOpacity>
-        </View>
+              {/* Swiggy/Zomato Floating Cart Strip */}
+              <FloatingCartBar
+                onPress={() =>
+                  Alert.alert(
+                    'Shopping Cart',
+                    `You have ${cartCount} items in your cart. Subtotal: ₹${cartCount * 280}`
+                  )
+                }
+              />
+            </View>
+          ) : null}
+        </SafeAreaView>
       </View>
-
-      {/* Main Content Area */}
-      {loading && !screen ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={palette.cyan400} />
-          <Text style={styles.loadingText}>Fetching SDUI Schema...</Text>
-        </View>
-      ) : error ? (
-        <ScrollView
-          contentContainerStyle={styles.centerContainer}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={palette.cyan400} />}
-        >
-          <Text style={styles.errorText}>Error: {error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      ) : screen ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={styles.scrollBody}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={palette.cyan400} />}
-        >
-          <SDUIRenderer node={screen.root} />
-        </ScrollView>
-      ) : null}
 
       {/* Live SDUI Schema Editor Modal */}
       <Modal
@@ -184,176 +206,209 @@ export default function HomeScreen() {
         onRequestClose={() => setEditorVisible(false)}
       >
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <View>
-              <Text style={styles.modalTitle}>Live SDUI Schema Editor</Text>
-              <Text style={styles.modalSubtitle}>Edit JSON to see changes render in real time</Text>
+          <View style={[styles.modalInner, isLargeScreen && styles.modalInnerDesktop]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Live SDUI Schema Editor</Text>
+                <Text style={styles.modalSubtitle}>Edit JSON to see changes render in real time</Text>
+              </View>
+              <TouchableOpacity onPress={() => setEditorVisible(false)} style={styles.closeButton}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => setEditorVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Quick Preset Buttons */}
-          <View style={styles.presetsRow}>
-            <Text style={styles.presetsLabel}>Presets:</Text>
-            <TouchableOpacity
-              style={styles.presetChip}
-              onPress={() => handleLoadPreset(homeSchema)}
-            >
-              <Text style={styles.presetChipText}>E-Commerce</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.presetChip}
-              onPress={() => handleLoadPreset(FINTECH_PRESET)}
-            >
-              <Text style={styles.presetChipText}>FinTech / Crypto</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Quick Preset Buttons */}
+            <View style={styles.presetsRow}>
+              <Text style={styles.presetsLabel}>Presets:</Text>
+              <TouchableOpacity
+                style={styles.presetChip}
+                onPress={() => handleLoadPreset(homeSchema)}
+              >
+                <Text style={styles.presetChipText}>Swiggy / Zomato</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.presetChip}
+                onPress={() => handleLoadPreset(FINTECH_PRESET)}
+              >
+                <Text style={styles.presetChipText}>FinTech / Crypto</Text>
+              </TouchableOpacity>
+            </View>
 
-          <TextInput
-            style={styles.editorInput}
-            multiline
-            value={editorText}
-            onChangeText={setEditorText}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardAppearance="dark"
-          />
+            <TextInput
+              style={styles.editorInput}
+              multiline
+              value={editorText}
+              onChangeText={setEditorText}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardAppearance="dark"
+            />
 
-          <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.resetButton} onPress={handleResetSchema}>
-              <Text style={styles.resetButtonText}>Reset Default</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.applyButton} onPress={handleApplyCustomSchema}>
-              <Text style={styles.applyButtonText}>Apply Schema Live 🚀</Text>
-            </TouchableOpacity>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.resetButton} onPress={handleResetSchema}>
+                <Text style={styles.resetButtonText}>Reset Default</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.applyButton} onPress={handleApplyCustomSchema}>
+                <Text style={styles.applyButtonText}>Apply Schema Live 🚀</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerBackground: {
+    flex: 1,
+    backgroundColor: '#030712', // Deep ambient background on large viewports
+  },
+  responsiveShell: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#070B14',
+  },
+  responsiveShellDesktop: {
+    maxWidth: 540,
+    alignSelf: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#1F2937',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#070B14',
   },
-  headerBar: {
+  engineBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: themeTokens.spacing.lg,
-    paddingVertical: themeTokens.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#0A0F1D',
     borderBottomWidth: 1,
-    borderBottomColor: '#1F2937',
-    backgroundColor: '#0B0F19',
+    borderBottomColor: '#1A2333',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logoBadge: {
-    backgroundColor: palette.primary600,
-    color: palette.white,
-    fontWeight: '900',
-    fontSize: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: themeTokens.radius.sm,
-    letterSpacing: 0.5,
-  },
-  headerTitle: {
-    color: palette.white,
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    color: themeTokens.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  headerRight: {
+  engineLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  tierButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: '#374151',
+  brandBadge: {
+    backgroundColor: '#10B981', // Swiggy emerald green
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  brandBadgeText: {
+    color: '#070B14',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  engineTitle: {
+    color: palette.white,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  engineRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  vipPill: {
+    backgroundColor: '#1E293B',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: themeTokens.radius.full,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  tierButtonActive: {
-    backgroundColor: 'rgba(52, 211, 153, 0.2)',
-    borderColor: palette.emerald400,
+  vipPillActive: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderColor: palette.amber400,
   },
-  tierButtonText: {
+  vipPillText: {
     color: palette.white,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   editorButton: {
-    backgroundColor: '#1F2937',
-    width: 34,
-    height: 34,
-    borderRadius: themeTokens.radius.full,
+    backgroundColor: '#1E293B',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#334155',
   },
   editorButtonText: {
     color: palette.cyan400,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  viewportWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   scrollBody: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: themeTokens.spacing.xl,
+    padding: 24,
   },
   loadingText: {
-    color: themeTokens.colors.textSecondary,
+    color: '#94A3B8',
     fontSize: 14,
     marginTop: 12,
     fontWeight: '500',
   },
   errorText: {
-    color: themeTokens.colors.error,
+    color: palette.rose500,
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: palette.primary600,
+    backgroundColor: '#10B981',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: themeTokens.radius.md,
+    borderRadius: 8,
   },
   retryButtonText: {
-    color: palette.white,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0B0F19',
+    backgroundColor: '#070B14',
+  },
+  modalInner: {
+    flex: 1,
+  },
+  modalInnerDesktop: {
+    maxWidth: 680,
+    alignSelf: 'center',
+    width: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: themeTokens.spacing.lg,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#1F2937',
   },
@@ -363,7 +418,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   modalSubtitle: {
-    color: themeTokens.colors.textMuted,
+    color: '#94A3B8',
     fontSize: 12,
     marginTop: 2,
   },
@@ -378,51 +433,51 @@ const styles = StyleSheet.create({
   presetsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: themeTokens.spacing.lg,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#1F2937',
   },
   presetsLabel: {
-    color: themeTokens.colors.textMuted,
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
   presetChip: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#1E293B',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: themeTokens.radius.full,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#374151',
+    borderColor: '#334155',
   },
   presetChipText: {
-    color: palette.cyan400,
+    color: '#10B981',
     fontSize: 11,
     fontWeight: '700',
   },
   editorInput: {
     flex: 1,
-    backgroundColor: '#070A10',
+    backgroundColor: '#030712',
     color: '#34D399',
-    fontFamily: 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 12,
     padding: 16,
     textAlignVertical: 'top',
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: themeTokens.spacing.lg,
+    padding: 16,
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#1F2937',
   },
   resetButton: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#1E293B',
     paddingVertical: 14,
-    borderRadius: themeTokens.radius.md,
+    borderRadius: 10,
     alignItems: 'center',
   },
   resetButtonText: {
@@ -431,13 +486,13 @@ const styles = StyleSheet.create({
   },
   applyButton: {
     flex: 2,
-    backgroundColor: palette.primary600,
+    backgroundColor: '#10B981',
     paddingVertical: 14,
-    borderRadius: themeTokens.radius.md,
+    borderRadius: 10,
     alignItems: 'center',
   },
   applyButtonText: {
-    color: palette.white,
+    color: '#FFFFFF',
     fontWeight: '800',
   },
 });
