@@ -1,24 +1,27 @@
 /**
- * Action Dispatcher
+ * Action Dispatcher (Enterprise Edition)
  *
- * Handles action objects from SDUI schemas. Maps action types
- * to actual navigation, API calls, state changes, and more.
+ * Handles action objects, sequential action pipelines (chaining),
+ * prefetching, state mutation, and external triggers.
  */
 
 import { Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { SDUIAction, SDUITemplateContext } from './types';
 import { resolveActionPayload } from './TemplateResolver';
+import { fetchSDUIScreen } from '../services/schemaService';
+import { useAppStore } from '../store/useAppStore';
 
 type ActionHandler = (
-  payload: Record<string, unknown> | undefined,
+  action: SDUIAction,
   context: SDUITemplateContext
 ) => void | Promise<void>;
 
 // ─── Built-in Action Handlers ──────────────────────────────────────
 
 const builtinHandlers: Record<string, ActionHandler> = {
-  navigate: (payload) => {
+  navigate: (action) => {
+    const payload = action.payload;
     if (!payload?.screen) {
       console.warn('[SDUI] Navigate action missing "screen" in payload');
       return;
@@ -26,7 +29,6 @@ const builtinHandlers: Record<string, ActionHandler> = {
     const screen = String(payload.screen);
     const params = (payload.params as Record<string, string>) ?? {};
 
-    // Build path with params for Expo Router
     const queryString = Object.entries(params)
       .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
       .join('&');
@@ -41,7 +43,8 @@ const builtinHandlers: Record<string, ActionHandler> = {
     }
   },
 
-  openUrl: async (payload) => {
+  openUrl: async (action) => {
+    const payload = action.payload;
     if (!payload?.url) {
       console.warn('[SDUI] openUrl action missing "url" in payload');
       return;
@@ -55,7 +58,8 @@ const builtinHandlers: Record<string, ActionHandler> = {
     }
   },
 
-  apiCall: async (payload) => {
+  apiCall: async (action, context) => {
+    const payload = action.payload;
     if (!payload?.url) {
       console.warn('[SDUI] apiCall action missing "url" in payload');
       return;
@@ -68,35 +72,66 @@ const builtinHandlers: Record<string, ActionHandler> = {
         },
         body: payload.body ? JSON.stringify(payload.body) : undefined,
       });
-      const data = await response.json();
-      console.log('[SDUI] API response:', data);
 
-      // Optionally call a success callback
-      if (payload.onSuccess && typeof payload.onSuccess === 'string') {
-        dispatchAction(
-          { type: payload.onSuccess as SDUIAction['type'], payload: data },
-          {}
-        );
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-    } catch (error) {
+
+      const data = await response.json();
+      console.log('[SDUI] API response success:', data);
+
+      if (action.onSuccess) {
+        dispatchAction(action.onSuccess, { ...context, apiResponse: data });
+      }
+    } catch (error: any) {
       console.error('[SDUI] API call failed:', error);
+      if (action.onError) {
+        dispatchAction(action.onError, { ...context, error: error?.message });
+      }
     }
   },
 
-  showToast: (payload) => {
-    const message = String(payload?.message ?? 'Something happened');
+  showToast: (action) => {
+    const payload = action.payload;
+    const message = String(payload?.message ?? 'Action triggered');
     const title = String(payload?.title ?? '');
     Alert.alert(title, message);
   },
 
-  setState: (payload, _context) => {
-    // This will be wired into Zustand — placeholder for now
-    console.log('[SDUI] setState action:', payload);
+  setState: (action) => {
+    const payload = action.payload;
+    if (!payload) return;
+    const store = useAppStore.getState();
+
+    if (payload.activeCategory && typeof payload.activeCategory === 'string') {
+      store.setActiveCategory(payload.activeCategory);
+    }
+    if (payload.incrementCart) {
+      store.incrementCart();
+    }
+    if (payload.toggleLike && typeof payload.toggleLike === 'string') {
+      store.toggleLike(payload.toggleLike);
+    }
   },
 
-  showBottomSheet: (payload) => {
-    console.log('[SDUI] showBottomSheet:', payload);
-    // Will be implemented with a BottomSheet component
+  // ⛓️ Action Pipelines (Sequential Chaining)
+  chain: async (action, context) => {
+    if (!action.steps || !Array.isArray(action.steps)) {
+      console.warn('[SDUI] Chain action missing "steps" array');
+      return;
+    }
+
+    for (const step of action.steps) {
+      await dispatchAction(step, context);
+    }
+  },
+
+  // 🚀 Background Schema Prefetching
+  prefetch: (action) => {
+    const screenId = action.payload?.screen ? String(action.payload.screen) : null;
+    if (screenId) {
+      fetchSDUIScreen(screenId).catch(() => {});
+    }
   },
 
   dismiss: () => {
@@ -105,19 +140,13 @@ const builtinHandlers: Record<string, ActionHandler> = {
     }
   },
 
-  noop: () => {
-    // Intentional no-op
-  },
+  noop: () => {},
 };
 
 // ─── Custom Handler Registry ──────────────────────────────────────
 
 const customHandlers = new Map<string, ActionHandler>();
 
-/**
- * Register a custom action handler.
- * Use this to extend the SDUI action system with app-specific actions.
- */
 export function registerActionHandler(
   actionType: string,
   handler: ActionHandler
@@ -129,37 +158,37 @@ export function registerActionHandler(
  * Dispatch an SDUI action. Resolves template variables in the payload,
  * then finds and executes the appropriate handler.
  */
-export function dispatchAction(
+export async function dispatchAction(
   action: SDUIAction,
   context: SDUITemplateContext
-): void {
+): Promise<void> {
   const resolvedPayload = resolveActionPayload(action.payload, context);
+  const actionWithResolvedPayload: SDUIAction = {
+    ...action,
+    payload: resolvedPayload,
+  };
 
-  // Check custom handlers first (allows overriding builtins)
   const customHandler = customHandlers.get(action.type);
   if (customHandler) {
-    customHandler(resolvedPayload, context);
+    await customHandler(actionWithResolvedPayload, context);
     return;
   }
 
-  // Fall back to built-in handlers
   const builtinHandler = builtinHandlers[action.type];
   if (builtinHandler) {
-    builtinHandler(resolvedPayload, context);
+    await builtinHandler(actionWithResolvedPayload, context);
     return;
   }
 
   console.warn(`[SDUI] Unknown action type: "${action.type}"`);
 }
 
-/**
- * Create an event handler function from an SDUI action.
- * This returns a callback that can be passed directly to onPress, etc.
- */
 export function createActionHandler(
   action: SDUIAction | undefined,
   context: SDUITemplateContext
 ): (() => void) | undefined {
   if (!action) return undefined;
-  return () => dispatchAction(action, context);
+  return () => {
+    dispatchAction(action, context);
+  };
 }

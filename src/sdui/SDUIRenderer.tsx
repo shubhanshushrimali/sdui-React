@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SDUINode, SDUITemplateContext } from './types';
 import { componentRegistry } from './ComponentRegistry';
@@ -41,7 +41,7 @@ class SDUIErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
           </View>
         );
       }
-      return null; // Gracefully hide broken widgets in production
+      return null;
     }
     return this.props.children;
   }
@@ -53,19 +53,28 @@ export interface SDUIRendererProps {
   context?: SDUITemplateContext;
 }
 
-export const SDUIRenderer: React.FC<SDUIRendererProps> = ({ node, context }) => {
-  // Grab user profile for default context
+const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({ node, context }) => {
   const user = useUserStore((state) => state.user);
 
-  // Active template context merged with user info
   const effectiveContext: SDUITemplateContext = {
     user,
     ...context,
   };
 
+  // 1. Impression Analytics Auto-Tracking
+  useEffect(() => {
+    if (node?.analytics?.impressionEvent) {
+      console.log(`📊 [Analytics] Impression: "${node.analytics.impressionEvent}"`, {
+        nodeId: node.id,
+        nodeType: node.type,
+        ...node.analytics.properties,
+      });
+    }
+  }, [node?.id, node?.analytics?.impressionEvent]);
+
   if (!node) return null;
 
-  // 1. Evaluate top-level node condition if present
+  // 2. Evaluate node condition
   if (node.condition) {
     const isMet = evaluateCondition(node.condition, effectiveContext);
     if (isMet && node.ifTrue) {
@@ -73,32 +82,43 @@ export const SDUIRenderer: React.FC<SDUIRendererProps> = ({ node, context }) => 
     } else if (!isMet && node.ifFalse) {
       return <SDUIRenderer node={node.ifFalse} context={effectiveContext} />;
     } else if (!isMet) {
-      // Condition not met and no fallback branch, don't render this node
       return null;
     }
   }
 
-  // 2. Lookup component in registry
-  const ComponentImpl = componentRegistry.get(node.type);
+  // 3. Component Lookup with Fallback Matrix
+  let ComponentImpl = componentRegistry.get(node.type);
+
+  // If primary component is unknown, look for fallbackType
+  if (!ComponentImpl && node.fallbackType) {
+    ComponentImpl = componentRegistry.get(node.fallbackType);
+    if (ComponentImpl) {
+      console.info(`[SDUI] Degraded <${node.type}> to fallback <${node.fallbackType}>`);
+    }
+  }
 
   if (!ComponentImpl) {
     if (__DEV__) {
       return (
         <View style={styles.unknownBox}>
           <Text style={styles.unknownTitle}>[SDUI] Unregistered Component: "{node.type}"</Text>
-          <Text style={styles.unknownSubtitle}>Register this widget in ComponentRegistry.ts</Text>
+          <Text style={styles.unknownSubtitle}>
+            {node.fallbackType
+              ? `Fallback "${node.fallbackType}" was also missing`
+              : 'Register this widget in ComponentRegistry.ts'}
+          </Text>
         </View>
       );
     }
     return null;
   }
 
-  // 3. Callback helper for templating lists & conditionals
+  // 4. List / Template Callback helper
   const renderChildNode = (childNode: SDUINode, itemContext: any) => {
     return <SDUIRenderer node={childNode} context={itemContext} />;
   };
 
-  // 4. Render children recursively
+  // 5. Render children recursively
   const renderedChildren = node.children?.map((child, index) => (
     <SDUIRenderer
       key={child.id ? `${child.id}-${index}` : `child-${index}`}
@@ -119,6 +139,8 @@ export const SDUIRenderer: React.FC<SDUIRendererProps> = ({ node, context }) => 
     </SDUIErrorBoundary>
   );
 };
+
+export const SDUIRenderer = memo(SDUIRendererComponent);
 
 const styles = StyleSheet.create({
   errorBox: {

@@ -1,19 +1,26 @@
 import { z } from 'zod';
 
-export const SDUIActionSchema = z.object({
-  type: z.enum([
-    'navigate',
-    'goBack',
-    'openUrl',
-    'apiCall',
-    'setState',
-    'showToast',
-    'showBottomSheet',
-    'dismiss',
-    'noop',
-  ]),
-  payload: z.record(z.string(), z.unknown()).optional(),
-});
+export const SDUIActionSchema: z.ZodType<any> = z.lazy(() =>
+  z.object({
+    type: z.enum([
+      'navigate',
+      'goBack',
+      'openUrl',
+      'apiCall',
+      'setState',
+      'showToast',
+      'showBottomSheet',
+      'dismiss',
+      'chain',
+      'prefetch',
+      'noop',
+    ]),
+    payload: z.record(z.string(), z.unknown()).optional(),
+    steps: z.array(SDUIActionSchema).optional(),
+    onSuccess: SDUIActionSchema.optional(),
+    onError: SDUIActionSchema.optional(),
+  })
+);
 
 export const SDUIConditionSchema = z.object({
   expression: z.string(),
@@ -38,6 +45,14 @@ export const SDUINodeSchema: z.ZodType<any> = z.lazy(() =>
   z.object({
     id: z.string().optional(),
     type: z.string(),
+    fallbackType: z.string().optional(),
+    analytics: z
+      .object({
+        impressionEvent: z.string().optional(),
+        clickEvent: z.string().optional(),
+        properties: z.record(z.string(), z.unknown()).optional(),
+      })
+      .optional(),
     props: z.record(z.string(), z.unknown()).optional(),
     style: z.record(z.string(), z.unknown()).optional(),
     children: z.array(SDUINodeSchema).optional(),

@@ -15,11 +15,19 @@ export type SDUIActionType =
   | 'showToast'
   | 'showBottomSheet'
   | 'dismiss'
+  | 'chain'
+  | 'prefetch'
   | 'noop';
 
 export interface SDUIAction {
   type: SDUIActionType;
   payload?: Record<string, unknown>;
+  /** Ordered list of actions for 'chain' type */
+  steps?: SDUIAction[];
+  /** Async success branch */
+  onSuccess?: SDUIAction;
+  /** Async error branch */
+  onError?: SDUIAction;
 }
 
 // ─── Data Source ────────────────────────────────────────────────────
@@ -130,6 +138,16 @@ export interface SDUINode {
 
   /** Component type — maps to a registered component */
   type: string;
+
+  /** Fallback component type if 'type' is not registered in this app build */
+  fallbackType?: string;
+
+  /** Automated telemetry & impression tracking */
+  analytics?: {
+    impressionEvent?: string;
+    clickEvent?: string;
+    properties?: Record<string, unknown>;
+  };
 
   /** Props to pass to the component */
   props?: Record<string, unknown>;
