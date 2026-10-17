@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { themeTokens, palette } from '../../theme/tokens';
 import { selectSDUIValue, useEngineStore } from '../../state/engineState';
@@ -23,7 +24,7 @@ export const IconRow: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const setStateValue = useEngineStore((state) => state.setStateValue);
 
   return (
-    <View style={[styles.container, node.style as any]}>
+    <View style={[styles.container, schemaStyle(node.style)]}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {items.map((item) => {

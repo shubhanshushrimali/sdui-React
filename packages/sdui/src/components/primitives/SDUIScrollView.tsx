@@ -1,7 +1,8 @@
 import React from 'react';
-import { RefreshControl, ScrollView, StyleSheet, ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
 import { resolveProps } from '../../sdui/TemplateResolver';
+import { schemaStyle } from '../../sdui/style';
 
 export const SDUIScrollView: React.FC<SDUIComponentProps> = ({
   node,
@@ -13,7 +14,7 @@ export const SDUIScrollView: React.FC<SDUIComponentProps> = ({
   const resolvedProps = resolveProps(node.props, context);
   const horizontal = Boolean(resolvedProps.horizontal);
   const showsScrollIndicator = Boolean(resolvedProps.showsIndicators ?? false);
-  const style = (node.style || {}) as ViewStyle;
+  const style = schemaStyle(node.style);
   const canRefresh = !horizontal && typeof onRefresh === 'function';
 
   return (
@@ -24,7 +25,7 @@ export const SDUIScrollView: React.FC<SDUIComponentProps> = ({
       contentContainerStyle={[
         horizontal ? styles.horizontalContainer : styles.verticalContainer,
         canRefresh && styles.screenRootContainer,
-        resolvedProps.contentContainerStyle as ViewStyle,
+        schemaStyle(resolvedProps.contentContainerStyle),
       ]}
       style={[styles.default, style]}
       refreshControl={

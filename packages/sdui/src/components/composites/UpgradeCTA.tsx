@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { createActionHandler } from '../../sdui/ActionDispatcher';
 import { themeTokens, palette } from '../../theme/tokens';
@@ -16,7 +17,7 @@ export const UpgradeCTA: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const handleUpgrade = createActionHandler(node.actions?.onPress, context, node);
 
   return (
-    <View style={[styles.container, node.style as any]}>
+    <View style={[styles.container, schemaStyle(node.style)]}>
       <View style={styles.badge}>
         <Text style={styles.badgeText}>PRO FEATURE</Text>
       </View>

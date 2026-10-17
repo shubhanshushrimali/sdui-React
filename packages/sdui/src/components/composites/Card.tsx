@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { createActionHandler } from '../../sdui/ActionDispatcher';
 import { themeTokens, palette } from '../../theme/tokens';
@@ -37,7 +38,7 @@ export const Card: React.FC<SDUIComponentProps> = ({ node, context }) => {
       activeOpacity={0.9}
       onPress={handlePress}
       disabled={!handlePress}
-      style={[styles.card, node.style as any]}
+      style={[styles.card, schemaStyle(node.style)]}
     >
       {image ? (
         <View style={styles.imageWrap}>

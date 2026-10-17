@@ -36,11 +36,11 @@ jobs:
       - name: Pin npm
         run: npm install -g npm@12.1.0
 
-      # Critical findings fail the job. The remaining highs are braces <=3.0.3
-      # and node-forge <=1.4.0, which have no published patch. npm's suggested
-      # fix downgrades Expo to 44, so those two stay in the log.
+      # Fails on critical findings and on any advisory that is not in
+      # scripts/audit-allowlist.json. The allowlist is only for issues whose
+      # published fix downgrades Expo or breaks a require().
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=critical
+        run: node scripts/audit-gate.mjs
 
   codeql:
     name: CodeQL Analysis

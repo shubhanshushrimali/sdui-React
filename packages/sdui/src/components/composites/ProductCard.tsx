@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { createActionHandler } from '../../sdui/ActionDispatcher';
 import { themeTokens, palette } from '../../theme/tokens';
@@ -29,7 +30,7 @@ export const ProductCard: React.FC<SDUIComponentProps> = ({ node, context }) => 
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={handlePress}
-      style={[styles.container, node.style as any]}
+      style={[styles.container, schemaStyle(node.style)]}
     >
       <View style={styles.imageContainer}>
         {image ? <Image source={{ uri: image }} style={styles.image} resizeMode="cover" /> : null}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlatList, Text, View, StyleSheet } from 'react-native';
 import { SDUIComponentProps, SDUINode } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { resolveListItems } from '../../sdui/resolveListItems';
 import { themeTokens } from '../../theme/tokens';
@@ -47,7 +48,7 @@ export const VerticalList: React.FC<ListComponentProps> = ({
         }
         scrollEnabled={bounded}
         nestedScrollEnabled={bounded}
-        style={[styles.container, bounded ? { height: windowHeight } : null, node.style as any]}
+        style={[styles.container, bounded ? { height: windowHeight } : null, schemaStyle(node.style)]}
         contentContainerStyle={bounded ? { gap } : { gap, flexGrow: 0 }}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
@@ -57,7 +58,7 @@ export const VerticalList: React.FC<ListComponentProps> = ({
     );
   }
 
-  return <View style={[styles.container, { gap }, node.style as any]}>{children}</View>;
+  return <View style={[styles.container, { gap }, schemaStyle(node.style)]}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

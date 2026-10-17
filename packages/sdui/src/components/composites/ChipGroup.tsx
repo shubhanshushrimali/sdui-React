@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { themeTokens, palette } from '../../theme/tokens';
 import { selectSDUIValue, useEngineStore } from '../../state/engineState';
@@ -21,7 +22,7 @@ export const ChipGroup: React.FC<SDUIComponentProps> = ({ node, context }) => {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
-      style={node.style as any}
+      style={schemaStyle(node.style)}
     >
       {chips.map((chip) => {
         const isSelected = String(current ?? '') === chip.id || String(current ?? '') === chip.label;

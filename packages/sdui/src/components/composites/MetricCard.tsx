@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { themeTokens, palette } from '../../theme/tokens';
 
@@ -12,7 +13,7 @@ export const MetricCard: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const isPositive = p.isPositive !== false;
 
   return (
-    <View style={[styles.card, node.style as any]}>
+    <View style={[styles.card, schemaStyle(node.style)]}>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
         <Text style={styles.value}>{value}</Text>

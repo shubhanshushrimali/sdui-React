@@ -16,7 +16,7 @@ Render and reconfigure entire screens and mobile user journeys dynamically from 
 - 🔀 **Conditional Rendering**: Show, hide, or swap UI branches dynamically (e.g. show `PremiumBanner` for VIPs, or `UpgradeCTA` for free-tier users) via `condition` blocks.
 - 🚀 **Remote, Local & State Data Sources**: Lists can point to REST APIs (`type: "remote"`), a Zustand value (`type: "state"` with `stateKey` and optional `filters`), or static arrays (`type: "local"`), rendering items via reusable `itemTemplate`s.
 - 🎯 **Action Dispatcher**: Navigation, alerts, bottom sheets, URLs, and state mutations dispatched from schema event handlers (`onPress`, `onAction`).
-- 🛡️ **Fail-Safe & Type-Safe**: Runtime schema validation via **Zod** + per-component **Error Boundaries** to ensure a malformed widget never crashes your app.
+- 🛡️ **Fail-Safe & Type-Safe**: Runtime schema validation via **Zod** + per-component **Error Boundaries** to ensure a malformed widget never crashes your app. A `style` object is checked too: unknown keys, bad colors, and illegal layout values are rejected instead of being passed through.
 - 💾 **Cache Policies**: `metadata.cachePolicy` is `no-cache`, `cache-first`, or `stale-while-revalidate`. `cacheTTL` is seconds. Stale-while-revalidate paints the AsyncStorage copy immediately and refreshes from Firestore in the background once the TTL has passed. A refresh replaces that copy only when the remote `version` is higher. The same version is skipped, and an older remote document is ignored. Bump `version` when the JSON changes.
 - 🛠️ **Live In-App Schema Playground**: Test and hot-swap JSON schemas in real-time inside the app with immediate visual feedback.
 

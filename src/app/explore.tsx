@@ -69,13 +69,12 @@ export default function ExploreScreen() {
             </ScrollView>
           ) : screen ? (
             <View style={styles.scrollBody}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={styles.scrollFill}
-                refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
-              >
-                {render({ node: screen.root, context: { user } })}
-              </ScrollView>
+              {render({
+                node: screen.root,
+                context: { user },
+                refreshing: loading,
+                onRefresh: refresh,
+              })}
               {screen.overlay?.map((node, index) => (
                 <React.Fragment key={node.id ?? `overlay-${index}`}>
                   {render({ node, context: { user } })}
@@ -162,9 +161,6 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     backgroundColor: '#070B14',
-  },
-  scrollFill: {
-    flex: 1,
   },
   centerContainer: {
     flex: 1,

@@ -1,12 +1,13 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
 import { createActionHandler } from '../../sdui/ActionDispatcher';
 import { resolveProps } from '../../sdui/TemplateResolver';
+import { schemaStyle } from '../../sdui/style';
 
 export const SDUITouchable: React.FC<SDUIComponentProps> = ({ node, context, children }) => {
   const resolvedProps = resolveProps(node.props, context);
-  const style = (node.style || {}) as ViewStyle;
+  const style = schemaStyle(node.style);
 
   const onPressAction = node.actions?.onPress;
   const onLongPressAction = node.actions?.onLongPress;

@@ -1,0 +1,24 @@
+{
+  "advisories": [
+    {
+      "id": "GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "reason": "No release above 3.0.3. The suggested fix downgrades Expo to 44."
+    },
+    {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "reason": "The advisory covers every published 1.x release Expo's signing package can use. The suggested fix downgrades Expo to 44."
+    },
+    {
+      "id": "GHSA-w5hq-g745-h8pq",
+      "package": "uuid",
+      "reason": "The patched line is uuid 11, which xcode does not accept. The suggested fix downgrades Expo to 44."
+    },
+    {
+      "id": "GHSA-vcc3-ghjq-m6fr",
+      "package": "decode-uri-component",
+      "reason": "query-string 7 loads this with require(). The patched 0.5.0 package is ESM-only, so an override breaks Expo Router."
+    }
+  ]
+}

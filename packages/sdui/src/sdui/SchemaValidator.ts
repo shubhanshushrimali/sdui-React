@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SDUIStyleSchema } from './style';
 
 export const SDUIActionSchema: z.ZodType<any> = z.lazy(() =>
   z.object({
@@ -51,7 +52,7 @@ export const SDUINodeSchema: z.ZodType<any> = z.lazy(() =>
       })
       .optional(),
     props: z.record(z.string(), z.unknown()).optional(),
-    style: z.record(z.string(), z.unknown()).optional(),
+    style: SDUIStyleSchema.optional(),
     children: z.array(SDUINodeSchema).optional(),
     actions: z.record(z.string(), SDUIActionSchema).optional(),
     dataSource: SDUIDataSourceSchema.optional(),

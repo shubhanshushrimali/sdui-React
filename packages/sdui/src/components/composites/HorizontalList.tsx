@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { SDUIComponentProps, SDUINode } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { resolveListItems } from '../../sdui/resolveListItems';
 import { themeTokens } from '../../theme/tokens';
@@ -75,7 +76,7 @@ export const HorizontalList: React.FC<ListComponentProps> = ({
     (Array.isArray(dataSource.data) ? dataSource.data.length > 0 : !Array.isArray(stateValue));
 
   return (
-    <View style={[styles.wrapper, node.style as any]}>
+    <View style={[styles.wrapper, schemaStyle(node.style)]}>
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={themeTokens.colors.primary} />

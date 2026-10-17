@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
+import { schemaStyle } from '../../sdui/style';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { createActionHandler } from '../../sdui/ActionDispatcher';
 import { themeTokens, palette } from '../../theme/tokens';
@@ -21,7 +22,7 @@ export const Button: React.FC<SDUIComponentProps> = ({ node, context }) => {
         styles.base,
         styles[variant],
         styles[`size_${size}`],
-        node.style as any,
+        schemaStyle(node.style),
       ]}
     >
       <Text style={[styles.textBase, styles[`text_${variant}`]]}>{title}</Text>
