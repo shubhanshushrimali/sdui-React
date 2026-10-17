@@ -31,7 +31,7 @@
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.0",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.10.1",
+    "react-native-worklets": "0.13.0",
     "zod": "^4.6.7",
     "zustand": "^5.0.15"
   },
@@ -55,7 +55,7 @@
     "web": "expo start --web",
     "lint": "eslint src packages/sdui/src",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test packages/sdui/src/sdui/__tests__/template-resolver.test.ts packages/sdui/src/sdui/__tests__/conditional-evaluator.test.ts packages/sdui/src/sdui/__tests__/resolve-list-items.test.ts packages/sdui/src/sdui/__tests__/cache-policy.test.ts packages/sdui/src/sdui/__tests__/registry-fallback.test.ts packages/sdui/src/sdui/__tests__/contract-audit.test.ts packages/sdui/src/sdui/__tests__/url-policy.test.ts packages/sdui/src/sdui/__tests__/tree-limits.test.ts packages/sdui/src/sdui/__tests__/capabilities.test.ts && node --import ./scripts/test-loader.mjs --test src/__tests__/host-screen.test.ts",
+    "test": "node --import tsx --test packages/sdui/src/sdui/__tests__/template-resolver.test.ts packages/sdui/src/sdui/__tests__/conditional-evaluator.test.ts packages/sdui/src/sdui/__tests__/resolve-list-items.test.ts packages/sdui/src/sdui/__tests__/cache-policy.test.ts packages/sdui/src/sdui/__tests__/registry-fallback.test.ts packages/sdui/src/sdui/__tests__/contract-audit.test.ts packages/sdui/src/sdui/__tests__/url-policy.test.ts packages/sdui/src/sdui/__tests__/tree-limits.test.ts packages/sdui/src/sdui/__tests__/capabilities.test.ts packages/sdui/src/sdui/__tests__/analytics.test.ts && node --import ./scripts/test-loader.mjs --test src/__tests__/host-screen.test.ts",
     "test:schemas": "tsx ./scripts/validate-schemas.ts",
     "test:contract": "tsx ./scripts/conformance-coverage.ts",
     "export:web": "expo export --platform web"

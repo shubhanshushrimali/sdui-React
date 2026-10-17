@@ -26,10 +26,11 @@ updates:
       - dependency-name: "@types/react"
       - dependency-name: "react-native"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Reanimated and Worklets move as a pair. 4.7 needs Worklets 0.13.
       - dependency-name: "react-native-reanimated"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-native-worklets"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "react-native-gesture-handler"
         update-types: ["version-update:semver-major"]
       - dependency-name: "firebase"
