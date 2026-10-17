@@ -6,10 +6,6 @@ const sduiRoot = path.resolve(projectRoot, 'packages/sdui');
 
 const config = getDefaultConfig(projectRoot);
 
-config.watchFolders = [sduiRoot];
-config.resolver.extraNodeModules = {
-  '@sdui/react': sduiRoot,
-};
-config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
+config.watchFolders = [...new Set([...(config.watchFolders ?? []), projectRoot, sduiRoot])];
 
 module.exports = config;
