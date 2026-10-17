@@ -4,6 +4,8 @@ import { componentRegistry } from './sdui/ComponentRegistry';
 import { listActionTypes, registerActionHandler, type ActionHandler } from './sdui/ActionDispatcher';
 import type { SDUIComponent, SDUIScreen } from './sdui/types';
 import { configureRuntime, screenGuardReason, type EngineConfig } from './sdui/runtime';
+import { subscribeSDUIAnalytics, trackSDUIEvent } from './sdui/analytics';
+export type { SDUIAnalyticsEvent } from './sdui/analytics';
 
 export function render(props: SDUIRendererProps) {
   return createElement(SDUIRenderer, { ...props, guard: true });
@@ -35,6 +37,8 @@ export function acceptScreen(
   const reason = screenGuardReason(screen, clientCapabilities(), byteLength);
   return reason ? { ok: false, reason } : { ok: true };
 }
+
+export { subscribeSDUIAnalytics, trackSDUIEvent };
 
 export type { EngineConfig };
 

@@ -1,13 +1,15 @@
 /**
- * Single analytics sink for SDUI impressions and clicks.
+ * Single analytics sink for SDUI impressions, clicks, and runtime events.
  * Subscribe to forward events to a real provider. Dev logging stays here.
  */
 
 export interface SDUIAnalyticsEvent {
-  kind: 'impression' | 'click';
+  kind: 'impression' | 'click' | 'validation' | 'unknown' | 'render' | 'boundary';
   name: string;
   nodeId?: string;
   nodeType?: string;
+  /** Milliseconds React spent rendering a guarded root. */
+  durationMs?: number;
   properties?: Record<string, unknown>;
 }
 
@@ -27,6 +29,7 @@ export function trackSDUIEvent(event: SDUIAnalyticsEvent): void {
     console.log(`[SDUI] ${event.kind} "${event.name}"`, {
       nodeId: event.nodeId,
       nodeType: event.nodeType,
+      durationMs: event.durationMs,
       ...event.properties,
     });
   }

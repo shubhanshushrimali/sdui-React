@@ -1,9 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
-import { acceptScreen, type SDUIScreen } from '@sdui/react';
+import { acceptScreen, trackSDUIEvent, type SDUIScreen } from '@sdui/react';
 import { validateSDUIScreen } from '../../packages/sdui/src/sdui/SchemaValidator';
-import { decideCache, isCacheFresh, type CachePolicyName } from '../../packages/sdui/src/sdui/cachePolicy';
+import {
+  decideCache,
+  decideRemoteVersion,
+  isCacheFresh,
+  type CachePolicyName,
+} from '../../packages/sdui/src/sdui/cachePolicy';
 
 // Import local bundled fallback schemas
 import homeSchema from '../schemas/home.json';
@@ -37,6 +42,27 @@ function screensEqual(left: SDUIScreen, right: SDUIScreen): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function trackValidation(screenId: string, ok: boolean, reason?: string): void {
+  trackSDUIEvent({
+    kind: 'validation',
+    name: screenId,
+    properties: { ok, ...(reason ? { reason } : {}) },
+  });
+}
+
+function issueText(error: { issues?: { message?: string }[] }): string {
+  const messages =
+    error.issues
+      ?.map((issue) => issue.message)
+      .filter((message): message is string => Boolean(message)) ?? [];
+  return messages.slice(0, 3).join('; ') || 'invalid schema';
+}
+
+type NetworkResult =
+  | { status: 'screen'; screen: SDUIScreen }
+  | { status: 'skip'; reason: 'skip-same' | 'skip-older' }
+  | { status: 'missing' };
+
 async function readCachedScreen(screenId: string): Promise<CachedScreen | null> {
   const cacheKey = `${CACHE_PREFIX}${screenId}`;
   const cacheTimeKey = `${CACHE_TIME_PREFIX}${screenId}`;
@@ -50,9 +76,13 @@ async function readCachedScreen(screenId: string): Promise<CachedScreen | null> 
 
     const parsed = JSON.parse(cachedStr);
     const validation = validateSDUIScreen(parsed);
-    if (!validation.success) return null;
+    if (!validation.success) {
+      trackValidation(screenId, false, issueText(validation.error));
+      return null;
+    }
     const guard = acceptScreen(validation.data as SDUIScreen, cachedStr.length);
     if (!guard.ok) {
+      trackValidation(screenId, false, guard.reason);
       console.warn(`[SDUI] Cached schema for "${screenId}" blocked: ${guard.reason}`);
       return null;
     }
@@ -84,33 +114,42 @@ async function persistCache(screenId: string, screen: SDUIScreen): Promise<void>
   ]).catch(() => {});
 }
 
-async function fetchFromNetwork(screenId: string): Promise<SDUIScreen | null> {
-  if (!isFirebaseConfigured || !db) return null;
+async function fetchFromNetwork(screenId: string, cachedVersion: number | null): Promise<NetworkResult> {
+  if (!isFirebaseConfigured || !db) return { status: 'missing' };
 
   try {
     const snapshot = await getDoc(doc(db, 'sdui_screens', screenId));
-    if (!snapshot.exists()) return null;
+    if (!snapshot.exists()) return { status: 'missing' };
 
     const validation = validateSDUIScreen(snapshot.data());
     if (!validation.success) {
+      trackValidation(screenId, false, issueText(validation.error));
       console.warn(`[SDUI] Firestore schema for "${screenId}" failed validation:`, validation.error);
-      return null;
+      return { status: 'missing' };
     }
 
     const screen = validation.data as SDUIScreen;
     const guard = acceptScreen(screen);
     if (!guard.ok) {
+      trackValidation(screenId, false, guard.reason);
       console.warn(`[SDUI] Firestore schema for "${screenId}" blocked: ${guard.reason}`);
-      return null;
+      return { status: 'missing' };
     }
 
-    return screen;
+    const versionDecision = decideRemoteVersion({
+      policy: policyOf(screen),
+      cachedVersion,
+      remoteVersion: screen.version,
+    });
+    trackValidation(screenId, true);
+    if (versionDecision === 'apply') return { status: 'screen', screen };
+    return { status: 'skip', reason: versionDecision };
   } catch (firebaseErr) {
     console.warn(
       `[SDUI] Firebase fetch failed for "${screenId}", using cache/fallback:`,
       (firebaseErr as Error).message
     );
-    return null;
+    return { status: 'missing' };
   }
 }
 
@@ -148,10 +187,10 @@ async function revalidate(
   previous: SDUIScreen,
   onUpdate?: (screen: SDUIScreen) => void
 ): Promise<void> {
-  const fresh = await fetchFromNetwork(screenId);
-  if (!fresh) return;
-  await persistCache(screenId, fresh);
-  if (!screensEqual(previous, fresh)) onUpdate?.(fresh);
+  const fresh = await fetchFromNetwork(screenId, previous.version);
+  if (fresh.status !== 'screen') return;
+  await persistCache(screenId, fresh.screen);
+  if (!screensEqual(previous, fresh.screen)) onUpdate?.(fresh.screen);
 }
 
 export async function fetchSDUIScreen(
@@ -173,10 +212,13 @@ export async function fetchSDUIScreen(
     return cached.screen;
   }
 
-  const fresh = await fetchFromNetwork(screenId);
-  if (fresh) {
-    await persistCache(screenId, fresh);
-    return fresh;
+  const fresh = await fetchFromNetwork(screenId, cached?.screen.version ?? null);
+  if (fresh.status === 'screen') {
+    await persistCache(screenId, fresh.screen);
+    return fresh.screen;
+  }
+  if (fresh.status === 'skip' && cached) {
+    return cached.screen;
   }
 
   if (decision.action === 'fetch-network' && decision.keepStaleOnFailure && cached) {

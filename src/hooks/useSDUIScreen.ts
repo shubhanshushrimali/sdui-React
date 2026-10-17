@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { acceptScreen, type SDUIScreen } from '@sdui/react';
+import { acceptScreen, trackSDUIEvent, type SDUIScreen } from '@sdui/react';
 import { fetchSDUIScreen } from '../services/schemaService';
 import { useAppStore } from '../store/useAppStore';
 import { validateSDUIScreen } from '../../packages/sdui/src/sdui/SchemaValidator';
@@ -27,15 +27,33 @@ export function useSDUIScreen(screenId: string) {
     try {
       const raw = liveCustomSchema;
       const validation = validateSDUIScreen(JSON.parse(raw));
-      if (!validation.success) return null;
+      if (!validation.success) {
+        trackSDUIEvent({
+          kind: 'validation',
+          name: screenId,
+          properties: { ok: false, reason: 'invalid schema' },
+        });
+        return null;
+      }
       const screen = validation.data as SDUIScreen;
       const guard = acceptScreen(screen, raw.length);
       if (!guard.ok) {
+        trackSDUIEvent({
+          kind: 'validation',
+          name: screenId,
+          properties: { ok: false, reason: guard.reason },
+        });
         console.warn(`[SDUI] Live schema blocked: ${guard.reason}`);
         return null;
       }
+      trackSDUIEvent({ kind: 'validation', name: screenId, properties: { ok: true, source: 'live' } });
       return screen;
     } catch (parseError) {
+      trackSDUIEvent({
+        kind: 'validation',
+        name: screenId,
+        properties: { ok: false, reason: (parseError as Error).message },
+      });
       console.warn('[SDUI] Live schema parse error:', (parseError as Error).message);
       return null;
     }

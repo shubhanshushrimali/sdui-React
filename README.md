@@ -15,7 +15,7 @@ Render and reconfigure entire screens and mobile user journeys dynamically from 
 - 🚀 **Remote, Local & State Data Sources**: Lists can point to REST APIs (`type: "remote"`), a Zustand value (`type: "state"` with `stateKey` and optional `filters`), or static arrays (`type: "local"`), rendering items via reusable `itemTemplate`s.
 - 🎯 **Action Dispatcher**: Navigation, alerts, bottom sheets, URLs, and state mutations dispatched from schema event handlers (`onPress`, `onAction`).
 - 🛡️ **Fail-Safe & Type-Safe**: Runtime schema validation via **Zod** + per-component **Error Boundaries** to ensure a malformed widget never crashes your app.
-- 💾 **Cache Policies**: `metadata.cachePolicy` is `no-cache`, `cache-first`, or `stale-while-revalidate`. `cacheTTL` is seconds. Stale-while-revalidate paints the AsyncStorage copy immediately and refreshes from Firestore in the background once the TTL has passed.
+- 💾 **Cache Policies**: `metadata.cachePolicy` is `no-cache`, `cache-first`, or `stale-while-revalidate`. `cacheTTL` is seconds. Stale-while-revalidate paints the AsyncStorage copy immediately and refreshes from Firestore in the background once the TTL has passed. A refresh replaces that copy only when the remote `version` is higher. The same version is skipped, and an older remote document is ignored. Bump `version` when the JSON changes.
 - 🛠️ **Live In-App Schema Playground**: Test and hot-swap JSON schemas in real-time inside the app with immediate visual feedback.
 
 ---
@@ -141,7 +141,7 @@ render({ node: screen.root, context: { user } });
 
 `registerComponent` adds a widget the schema can name. `registerAction` handles an action `type`, including the built-in names `showBottomSheet` and `prefetch` when the host owns that behavior. Pass `user` and any extra state on `context`.
 
-`configure({ allowedOrigins })` is the URL allowlist. Images, `openUrl`, `apiCall`, and `dataSource.type: "remote"` only reach `https` hosts on that list. `http` is limited to loopback. `acceptScreen` refuses a document that is over 2,000 nodes, 32 levels deep, or 512 KB, and a document whose `metadata.requires` names a component or action this build does not register. `clientCapabilities()` is the set to send when asking a server for a screen. Lists use `FlatList`. A vertical list stays in the page scroll unless its schema sets `props.height`, which windows that list.
+`configure({ allowedOrigins })` is the URL allowlist. Images, `openUrl`, `apiCall`, and `dataSource.type: "remote"` only reach `https` hosts on that list. `http` is limited to loopback. `acceptScreen` refuses a document that is over 2,000 nodes, 32 levels deep, or 512 KB, and a document whose `metadata.requires` names a component or action this build does not register. `clientCapabilities()` is the set to send when asking a server for a screen. `subscribeSDUIAnalytics` receives impressions, clicks, validation results, unknown components, root render time, and error-boundary failures. Lists use `FlatList`. A vertical list stays in the page scroll unless its schema sets `props.height`, which windows that list.
 
 ## 📂 Project Directory Structure
 

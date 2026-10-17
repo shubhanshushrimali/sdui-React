@@ -61,6 +61,10 @@ jobs:
       - name: Setup Node and install
         uses: ./.github/actions/setup-node-app
 
+      - name: Use a root-relative base for pull request artifacts
+        if: github.event_name == 'pull_request'
+        run: node --input-type=module -e "import {readFileSync,writeFileSync} from 'node:fs'; const app=JSON.parse(readFileSync('app.json','utf8')); app.expo.experiments.baseUrl='/'; writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');"
+
       - name: Export Expo web bundle
         run: |
           set -euo pipefail
@@ -76,3 +80,57 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: true
+
+  preview:
+    name: Comment with the web artifact
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    needs: [web-build-check]
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Upsert the preview comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const marker = '<!-- sdui-web-preview -->';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              marker,
+              '### Web preview',
+              '',
+              `The Expo web export for this pull request is the \`expo-web-dist\` artifact on the [web export run](${runUrl}).`,
+              '',
+              'Production Pages stays at https://shubhanshushrimali.github.io/sdui-React/.',
+            ].join('\n');
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              if (error.status === 403) {
+                core.warning('Could not comment on this pull request.');
+                return;
+              }
+              throw error;
+            }

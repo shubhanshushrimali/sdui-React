@@ -37,3 +37,20 @@ export function decideCache(input: {
     keepStaleOnFailure: input.policy !== 'no-cache' && input.hasCache,
   };
 }
+
+export type RemoteVersionDecision = 'apply' | 'skip-same' | 'skip-older';
+
+/**
+ * A remote document replaces the cached copy only when its version is higher.
+ * `no-cache` always applies. A missing cache always applies.
+ */
+export function decideRemoteVersion(input: {
+  policy: CachePolicyName;
+  cachedVersion: number | null;
+  remoteVersion: number;
+}): RemoteVersionDecision {
+  if (input.cachedVersion == null || input.policy === 'no-cache') return 'apply';
+  if (input.remoteVersion > input.cachedVersion) return 'apply';
+  if (input.remoteVersion === input.cachedVersion) return 'skip-same';
+  return 'skip-older';
+}

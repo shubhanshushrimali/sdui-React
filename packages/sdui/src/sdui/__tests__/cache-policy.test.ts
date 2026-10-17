@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { decideCache, isCacheFresh } from '../cachePolicy';
+import { decideCache, decideRemoteVersion, isCacheFresh } from '../cachePolicy';
 
 test('TTL treats missing as fresh and zero as expired', () => {
   assert.equal(isCacheFresh(undefined, 10_000), true);
@@ -42,6 +42,29 @@ test('a forced refresh always asks the network', () => {
   assert.deepEqual(
     decideCache({ policy: 'cache-first', hasCache: true, fresh: true, forceNetwork: true }),
     { action: 'fetch-network', keepStaleOnFailure: true }
+  );
+});
+
+test('a remote document applies only when it is newer', () => {
+  assert.equal(
+    decideRemoteVersion({ policy: 'cache-first', cachedVersion: 4, remoteVersion: 4 }),
+    'skip-same'
+  );
+  assert.equal(
+    decideRemoteVersion({ policy: 'stale-while-revalidate', cachedVersion: 4, remoteVersion: 3 }),
+    'skip-older'
+  );
+  assert.equal(
+    decideRemoteVersion({ policy: 'cache-first', cachedVersion: 4, remoteVersion: 5 }),
+    'apply'
+  );
+  assert.equal(
+    decideRemoteVersion({ policy: 'no-cache', cachedVersion: 4, remoteVersion: 4 }),
+    'apply'
+  );
+  assert.equal(
+    decideRemoteVersion({ policy: 'cache-first', cachedVersion: null, remoteVersion: 1 }),
+    'apply'
   );
 });
 

@@ -1,4 +1,12 @@
-import React, { Component, ErrorInfo, ReactNode, useEffect, memo } from 'react';
+import React, {
+  Component,
+  ErrorInfo,
+  Profiler,
+  ProfilerOnRenderCallback,
+  ReactNode,
+  memo,
+  useEffect,
+} from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SDUINode, SDUITemplateContext } from './types';
 import { componentRegistry } from './ComponentRegistry';
@@ -8,9 +16,9 @@ import { themeTokens } from '../theme/tokens';
 import { trackSDUIEvent } from './analytics';
 import { nodeGuardReason } from './runtime';
 
-// ─── Error Boundary ───────────────────────────────────────────────
 interface ErrorBoundaryProps {
   nodeType: string;
+  nodeId?: string;
   children: ReactNode;
 }
 
@@ -30,12 +38,21 @@ class SDUIErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(`[SDUI] Render error in <${this.props.nodeType}>:`, error, errorInfo);
+    trackSDUIEvent({
+      kind: 'boundary',
+      name: this.props.nodeType,
+      nodeId: this.props.nodeId,
+      nodeType: this.props.nodeType,
+      properties: { message: error.message },
+    });
+    if (typeof __DEV__ === 'undefined' || __DEV__) {
+      console.error(`[SDUI] Render error in <${this.props.nodeType}>:`, error, errorInfo);
+    }
   }
 
   render() {
     if (this.state.hasError) {
-      if (__DEV__) {
+      if (typeof __DEV__ === 'undefined' || __DEV__) {
         return (
           <View style={styles.errorBox}>
             <Text style={styles.errorTitle}>Error rendering &lt;{this.props.nodeType}&gt;</Text>
@@ -49,7 +66,24 @@ class SDUIErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
-// ─── SDUIRenderer ──────────────────────────────────────────────────
+function branchTarget(node: SDUINode, context: SDUITemplateContext): SDUINode | null | 'self' {
+  if (!node.condition) return 'self';
+  const isMet = evaluateCondition(node.condition, context);
+  if (isMet && node.ifTrue) return node.ifTrue;
+  if (!isMet && node.ifFalse) return node.ifFalse;
+  if (!isMet) return null;
+  return 'self';
+}
+
+const onRootRender: ProfilerOnRenderCallback = (id, _phase, actualDuration) => {
+  trackSDUIEvent({
+    kind: 'render',
+    name: id,
+    nodeType: id,
+    durationMs: Math.round(actualDuration),
+  });
+};
+
 export interface SDUIRendererProps {
   node: SDUINode | null | undefined;
   context?: SDUITemplateContext;
@@ -81,55 +115,67 @@ const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({
     },
   };
 
-  // 1. Impression Analytics Auto-Tracking
+  const nodeId = node?.id;
+  const nodeType = node?.type;
+  const impression = node?.analytics?.impressionEvent;
+  const impressionProps = node?.analytics?.properties;
+  const guardReason = guard && node ? nodeGuardReason(node) : null;
+  const branch = node ? branchTarget(node, effectiveContext) : 'self';
+  const rendersSelf = Boolean(node) && !guardReason && branch === 'self';
+  const resolved = rendersSelf && node ? componentRegistry.resolve(node.type, node.fallbackType) : null;
+  const unknownType = rendersSelf && (!resolved?.component || resolved.degraded) ? nodeType : null;
+  const fallbackType = resolved?.degraded ? resolved.resolvedType : undefined;
+
   useEffect(() => {
-    if (!node?.analytics?.impressionEvent) return;
+    if (!impression || !nodeType) return;
     trackSDUIEvent({
       kind: 'impression',
-      name: node.analytics.impressionEvent,
-      nodeId: node.id,
-      nodeType: node.type,
-      properties: node.analytics.properties,
+      name: impression,
+      nodeId,
+      nodeType,
+      properties: impressionProps,
     });
-  }, [node?.id, node?.type, node?.analytics?.impressionEvent, node?.analytics?.properties]);
+  }, [impression, impressionProps, nodeId, nodeType]);
+
+  useEffect(() => {
+    if (!guardReason || !nodeType) return;
+    trackSDUIEvent({
+      kind: 'validation',
+      name: nodeType,
+      nodeId,
+      nodeType,
+      properties: { ok: false, reason: guardReason },
+    });
+  }, [guardReason, nodeId, nodeType]);
+
+  useEffect(() => {
+    if (!unknownType) return;
+    trackSDUIEvent({
+      kind: 'unknown',
+      name: unknownType,
+      nodeId,
+      nodeType: unknownType,
+      properties: fallbackType ? { fallbackType } : undefined,
+    });
+  }, [fallbackType, nodeId, unknownType]);
 
   if (!node) return null;
 
-  if (guard) {
-    const reason = nodeGuardReason(node);
-    if (reason) {
-      return (
-        <View style={styles.unknownBox}>
-          <Text style={styles.unknownTitle}>Schema blocked</Text>
-          <Text style={styles.unknownSubtitle}>{reason}</Text>
-        </View>
-      );
-    }
-  }
-
-  // 2. Evaluate node condition
-  if (node.condition) {
-    const isMet = evaluateCondition(node.condition, effectiveContext);
-    if (isMet && node.ifTrue) {
-      return <SDUIRenderer node={node.ifTrue} context={effectiveContext} />;
-    } else if (!isMet && node.ifFalse) {
-      return <SDUIRenderer node={node.ifFalse} context={effectiveContext} />;
-    } else if (!isMet) {
-      return null;
-    }
-  }
-
-  // 3. Component Lookup with Fallback Matrix
-  const resolved = componentRegistry.resolve(node.type, node.fallbackType);
-  const ComponentImpl = resolved?.component;
-
-  if (resolved?.degraded) {
-    console.info(`[SDUI] Degraded <${node.type}> to fallback <${resolved.resolvedType}>`);
-  }
-
-  if (!ComponentImpl) {
-    if (__DEV__) {
-      return (
+  let body: ReactNode;
+  if (guardReason) {
+    body = (
+      <View style={styles.unknownBox}>
+        <Text style={styles.unknownTitle}>Schema blocked</Text>
+        <Text style={styles.unknownSubtitle}>{guardReason}</Text>
+      </View>
+    );
+  } else if (branch === null) {
+    return null;
+  } else if (branch !== 'self') {
+    body = <SDUIRenderer node={branch} context={effectiveContext} />;
+  } else if (!resolved?.component) {
+    if (typeof __DEV__ === 'undefined' || __DEV__) {
+      body = (
         <View style={styles.unknownBox}>
           <Text style={styles.unknownTitle}>Unregistered component: {node.type}</Text>
           <Text style={styles.unknownSubtitle}>
@@ -139,36 +185,44 @@ const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({
           </Text>
         </View>
       );
+    } else {
+      return null;
     }
-    return null;
+  } else {
+    if (resolved.degraded) {
+      console.info(`[SDUI] Degraded <${node.type}> to fallback <${resolved.resolvedType}>`);
+    }
+    const ComponentImpl = resolved.component;
+    const renderChildNode = (childNode: SDUINode, itemContext: SDUITemplateContext) => {
+      return <SDUIRenderer node={childNode} context={itemContext} />;
+    };
+    const renderedChildren = node.children?.map((child, index) => (
+      <SDUIRenderer
+        key={child.id ? `${child.id}-${index}` : `child-${index}`}
+        node={child}
+        context={effectiveContext}
+      />
+    ));
+    body = (
+      <SDUIErrorBoundary nodeType={node.type} nodeId={node.id}>
+        <ComponentImpl
+          node={node}
+          context={effectiveContext}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          {...({ renderChildNode } as object)}
+        >
+          {renderedChildren}
+        </ComponentImpl>
+      </SDUIErrorBoundary>
+    );
   }
 
-  // 4. List / Template Callback helper
-  const renderChildNode = (childNode: SDUINode, itemContext: any) => {
-    return <SDUIRenderer node={childNode} context={itemContext} />;
-  };
-
-  // 5. Render children recursively
-  const renderedChildren = node.children?.map((child, index) => (
-    <SDUIRenderer
-      key={child.id ? `${child.id}-${index}` : `child-${index}`}
-      node={child}
-      context={effectiveContext}
-    />
-  ));
-
+  if (!guard) return body;
   return (
-    <SDUIErrorBoundary nodeType={node.type}>
-      <ComponentImpl
-        node={node}
-        context={effectiveContext}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        {...({ renderChildNode } as any)}
-      >
-        {renderedChildren}
-      </ComponentImpl>
-    </SDUIErrorBoundary>
+    <Profiler id={node.type} onRender={onRootRender}>
+      {body}
+    </Profiler>
   );
 };
 
