@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSDUIScreen } from '../hooks/useSDUIScreen';
-import { SDUIRenderer } from '../sdui/SDUIRenderer';
+import { render } from '@sdui/react';
 import { useUserStore } from '../store/useUserStore';
 import { useAppStore } from '../store/useAppStore';
 import { palette } from '../theme/tokens';
@@ -170,9 +170,16 @@ export default function HomeScreen() {
             </View>
           ) : screen ? (
             <View style={styles.viewportWrapper}>
-              <SDUIRenderer node={screen.root} refreshing={loading} onRefresh={refresh} />
+              {render({
+                node: screen.root,
+                context: { user },
+                refreshing: loading,
+                onRefresh: refresh,
+              })}
               {screen.overlay?.map((node, index) => (
-                <SDUIRenderer key={node.id ?? `overlay-${index}`} node={node} />
+                <React.Fragment key={node.id ?? `overlay-${index}`}>
+                  {render({ node, context: { user } })}
+                </React.Fragment>
               ))}
             </View>
           ) : null}

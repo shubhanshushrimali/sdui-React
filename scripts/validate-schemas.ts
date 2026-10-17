@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateSDUIScreen } from '../src/sdui/SchemaValidator';
+import { validateSDUIScreen } from '../packages/sdui/src/sdui/SchemaValidator';
 
 const schemasDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'schemas');
 

@@ -9,6 +9,9 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@sdui/react": [
+        "./packages/sdui/src/index.ts"
       ]
     }
   },

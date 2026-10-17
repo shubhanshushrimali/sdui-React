@@ -16,7 +16,7 @@ concurrency:
 jobs:
   validate:
     name: Lint, test, and schema contract
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -45,7 +45,7 @@ jobs:
 
   web-build-check:
     name: Expo Web Export & Bundle Integrity
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: [validate]
     permissions:

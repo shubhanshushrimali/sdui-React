@@ -12,7 +12,8 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSDUIScreen } from '../hooks/useSDUIScreen';
-import { SDUIRenderer } from '../sdui/SDUIRenderer';
+import { render } from '@sdui/react';
+import { useUserStore } from '../store/useUserStore';
 import { palette } from '../theme/tokens';
 
 export default function ExploreScreen() {
@@ -20,6 +21,7 @@ export default function ExploreScreen() {
   const isLargeScreen = width > 640;
 
   const { screen, loading, error, refresh } = useSDUIScreen('explore');
+  const user = useUserStore((state) => state.user);
 
   return (
     <View style={styles.outerBackground}>
@@ -72,10 +74,12 @@ export default function ExploreScreen() {
                 style={styles.scrollFill}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
               >
-                <SDUIRenderer node={screen.root} />
+                {render({ node: screen.root, context: { user } })}
               </ScrollView>
               {screen.overlay?.map((node, index) => (
-                <SDUIRenderer key={node.id ?? `overlay-${index}`} node={node} />
+                <React.Fragment key={node.id ?? `overlay-${index}`}>
+                  {render({ node, context: { user } })}
+                </React.Fragment>
               ))}
             </View>
           ) : null}

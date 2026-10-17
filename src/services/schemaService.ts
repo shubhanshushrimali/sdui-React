@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
-import { SDUIScreen } from '../sdui/types';
-import { validateSDUIScreen } from '../sdui/SchemaValidator';
-import { decideCache, isCacheFresh, type CachePolicyName } from '../sdui/cachePolicy';
+import { acceptScreen, type SDUIScreen } from '@sdui/react';
+import { validateSDUIScreen } from '../../packages/sdui/src/sdui/SchemaValidator';
+import { decideCache, isCacheFresh, type CachePolicyName } from '../../packages/sdui/src/sdui/cachePolicy';
 
 // Import local bundled fallback schemas
 import homeSchema from '../schemas/home.json';
@@ -51,6 +51,11 @@ async function readCachedScreen(screenId: string): Promise<CachedScreen | null> 
     const parsed = JSON.parse(cachedStr);
     const validation = validateSDUIScreen(parsed);
     if (!validation.success) return null;
+    const guard = acceptScreen(validation.data as SDUIScreen, cachedStr.length);
+    if (!guard.ok) {
+      console.warn(`[SDUI] Cached schema for "${screenId}" blocked: ${guard.reason}`);
+      return null;
+    }
 
     const savedAt = Number(cachedTime);
     const ageMs = Number.isFinite(savedAt) ? Date.now() - savedAt : Number.POSITIVE_INFINITY;
@@ -92,7 +97,14 @@ async function fetchFromNetwork(screenId: string): Promise<SDUIScreen | null> {
       return null;
     }
 
-    return validation.data as SDUIScreen;
+    const screen = validation.data as SDUIScreen;
+    const guard = acceptScreen(screen);
+    if (!guard.ok) {
+      console.warn(`[SDUI] Firestore schema for "${screenId}" blocked: ${guard.reason}`);
+      return null;
+    }
+
+    return screen;
   } catch (firebaseErr) {
     console.warn(
       `[SDUI] Firebase fetch failed for "${screenId}", using cache/fallback:`,
@@ -106,7 +118,10 @@ function bundledScreen(screenId: string): SDUIScreen | null {
   const fallback = LOCAL_FALLBACKS[screenId];
   if (!fallback) return null;
   const validation = validateSDUIScreen(fallback);
-  return validation.success ? (validation.data as SDUIScreen) : null;
+  if (!validation.success) return null;
+  const screen = validation.data as SDUIScreen;
+  const guard = acceptScreen(screen);
+  return guard.ok ? screen : null;
 }
 
 function emptyScreen(screenId: string): SDUIScreen {

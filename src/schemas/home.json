@@ -115,6 +115,9 @@
           "props": {
             "title": "Member pricing is on",
             "message": "This branch renders because user.isPremium is true."
+          },
+          "actions": {
+            "onPress": { "type": "toggleMember" }
           }
         },
         "ifFalse": {
@@ -123,6 +126,9 @@
             "title": "Unlock member pricing",
             "message": "The other branch is a different component in the same JSON node.",
             "buttonText": "Switch member state"
+          },
+          "actions": {
+            "onPress": { "type": "toggleMember" }
           }
         }
       },

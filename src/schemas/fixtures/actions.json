@@ -6,7 +6,11 @@
     "description": "Every action type, including chain, success, and error branches.",
     "cachePolicy": "no-cache",
     "cacheTTL": 0,
-    "transition": "slide"
+    "transition": "slide",
+    "requires": {
+      "components": ["Button"],
+      "actions": ["navigate"]
+    }
   },
   "root": {
     "type": "View",

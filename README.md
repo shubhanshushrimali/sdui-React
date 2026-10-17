@@ -125,47 +125,37 @@ graph TD
 
 ---
 
+## Install the engine
+
+The catalog screens in `src/app` are a demo. Another app installs the renderer from `packages/sdui` (`@sdui/react`). Painting a screen uses `render`, `registerComponent`, and `registerAction`.
+
+```ts
+import { render, registerComponent, registerAction } from '@sdui/react';
+
+registerAction('showBottomSheet', (action) => {
+  openYourSheet(action.payload);
+});
+
+render({ node: screen.root, context: { user } });
+```
+
+`registerComponent` adds a widget the schema can name. `registerAction` handles an action `type`, including the built-in names `showBottomSheet` and `prefetch` when the host owns that behavior. Pass `user` and any extra state on `context`.
+
+`configure({ allowedOrigins })` is the URL allowlist. Images, `openUrl`, `apiCall`, and `dataSource.type: "remote"` only reach `https` hosts on that list. `http` is limited to loopback. `acceptScreen` refuses a document that is over 2,000 nodes, 32 levels deep, or 512 KB, and a document whose `metadata.requires` names a component or action this build does not register. `clientCapabilities()` is the set to send when asking a server for a screen. Lists use `FlatList`. A vertical list stays in the page scroll unless its schema sets `props.height`, which windows that list.
+
 ## 📂 Project Directory Structure
 
 ```text
 sdui-React/
+├── packages/sdui/                 # @sdui/react — render, registerComponent, registerAction
+│   └── src/
+│       ├── index.ts
+│       ├── sdui/                  # Renderer, registry, actions, schema contract
+│       ├── components/            # Primitives and generic composites
+│       └── theme/
 ├── src/
-│   ├── sdui/                      # 🧠 Core SDUI Engine
-│   │   ├── types.ts               # JSON schema contracts & types
-│   │   ├── SDUIRenderer.tsx       # Recursive rendering engine & error boundary
-│   │   ├── ComponentRegistry.ts   # Maps type strings -> React Native components
-│   │   ├── TemplateResolver.ts    # Interpolates {{variables}} from context
-│   │   ├── ActionDispatcher.ts    # Executes navigation, toasts, URLs, & APIs
-│   │   ├── ConditionalEvaluator.ts# Condition evaluator (ifTrue / ifFalse)
-│   │   └── SchemaValidator.ts     # Zod schema validation
-│   │
-│   ├── components/
-│   │   ├── primitives/            # Low-level layout blocks
-│   │   │   ├── SDUIView.tsx
-│   │   │   ├── SDUIText.tsx
-│   │   │   ├── SDUIImage.tsx
-│   │   │   ├── SDUIScrollView.tsx
-│   │   │   ├── SDUITouchable.tsx
-│   │   │   └── SDUISpacer.tsx
-│   │   │
-│   │   ├── composites/            # Generic widgets. Copy and color come from the schema
-│   │   │   ├── Header.tsx
-│   │   │   ├── Card.tsx
-│   │   │   ├── IconRow.tsx
-│   │   │   ├── HeroBanner.tsx
-│   │   │   ├── SectionHeader.tsx
-│   │   │   ├── ProductCard.tsx
-│   │   │   ├── HorizontalList.tsx
-│   │   │   ├── VerticalList.tsx
-│   │   │   ├── ChipGroup.tsx
-│   │   │   ├── MetricCard.tsx
-│   │   │   ├── UpgradeCTA.tsx
-│   │   │   ├── PremiumBanner.tsx
-│   │   │   └── Button.tsx
-│   │   │
-│   │   └── conditional/
-│   │       └── ConditionalRender.tsx
-│   │
+│   ├── app/                       # Catalog demo
+│   ├── sdui-host.ts               # Demo actions: sheet, prefetch, member toggle
 │   ├── schemas/                   # Bundled seed schemas
 │   │   ├── home.json
 │   │   └── explore.json
@@ -226,7 +216,7 @@ To fetch schemas from a live Firebase project:
 2. Create a Firestore database.
 3. Add a collection named `sdui_screens`.
 4. Create a document with ID `home` and paste the contents of `src/schemas/home.json` as fields.
-5. Create a `.env` file in the root with:
+5. Copy `.env.example` to `.env` and fill in the Firebase keys:
    ```env
    EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com

@@ -1,4 +1,4 @@
-import { auditSchemaFixtures } from '../src/sdui/contractAudit';
+import { auditSchemaFixtures } from '../packages/sdui/src/sdui/contractAudit';
 
 const gaps = auditSchemaFixtures();
 
