@@ -1,0 +1,77 @@
+{
+  "screenId": "conformance-actions",
+  "version": 1,
+  "metadata": {
+    "title": "Action coverage",
+    "description": "Every action type, including chain, success, and error branches.",
+    "cachePolicy": "no-cache",
+    "cacheTTL": 0,
+    "transition": "slide"
+  },
+  "root": {
+    "type": "View",
+    "children": [
+      {
+        "type": "Button",
+        "props": { "title": "Navigate" },
+        "actions": {
+          "onPress": { "type": "navigate", "payload": { "screen": "explore" } }
+        }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "Back" },
+        "actions": { "onPress": { "type": "goBack" } }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "Open" },
+        "actions": {
+          "onPress": { "type": "openUrl", "payload": { "url": "https://example.com" } }
+        }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "Call" },
+        "actions": {
+          "onPress": {
+            "type": "apiCall",
+            "payload": { "url": "https://example.com/hook", "method": "POST" },
+            "onSuccess": { "type": "showToast", "payload": { "message": "Saved" } },
+            "onError": { "type": "dismiss" }
+          }
+        }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "State" },
+        "actions": {
+          "onPress": { "type": "setState", "payload": { "activeCategory": "All" } }
+        }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "Sheet" },
+        "actions": {
+          "onPress": {
+            "type": "showBottomSheet",
+            "payload": { "title": "Details", "message": "From the fixture" }
+          }
+        }
+      },
+      {
+        "type": "Button",
+        "props": { "title": "Chain" },
+        "actions": {
+          "onPress": {
+            "type": "chain",
+            "steps": [
+              { "type": "prefetch", "payload": { "screen": "explore" } },
+              { "type": "noop" }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

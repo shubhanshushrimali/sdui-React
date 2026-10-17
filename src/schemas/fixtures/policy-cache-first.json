@@ -1,0 +1,12 @@
+{
+  "screenId": "policy-cache-first",
+  "version": 1,
+  "metadata": {
+    "title": "Cache first",
+    "description": "Fresh cache is returned until cacheTTL passes.",
+    "cachePolicy": "cache-first",
+    "cacheTTL": 30,
+    "transition": "fade"
+  },
+  "root": { "type": "View" }
+}

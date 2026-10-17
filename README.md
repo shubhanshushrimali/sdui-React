@@ -9,13 +9,13 @@ Render and reconfigure entire screens and mobile user journeys dynamically from 
 ## ✨ Features
 
 - ⚡ **Zero-Code Screen Delivery**: Ship new layouts, campaigns, and feature sections instantly by updating JSON on your server or Firestore.
-- 🧩 **Recursive UI Tree Engine**: Declarative schema parsing that recursively evaluates component hierarchies, nested containers, and lists.
+- 🧩 **Recursive UI Tree Engine**: The backend owns the screen. `root` is the layout, `overlay` is anything pinned on top, and every label, color, and action is a field in the JSON.
 - 🎯 **Template Interpolation**: Seamlessly inject dynamic user and app state into text, image URLs, and properties using `{{user.name}}`, `{{item.price}}`, etc.
 - 🔀 **Conditional Rendering**: Show, hide, or swap UI branches dynamically (e.g. show `PremiumBanner` for VIPs, or `UpgradeCTA` for free-tier users) via `condition` blocks.
-- 🚀 **Remote & Local Data Sources**: Lists can point directly to REST APIs (`type: "remote"`), Zustand state (`type: "state"`), or static arrays (`type: "local"`), rendering items via reusable `itemTemplate`s.
-- 🎯 **Action Dispatcher**: Native navigation, alerts, URLs, and state mutations dispatched directly from schema event handlers (`onPress`, `onAction`).
+- 🚀 **Remote, Local & State Data Sources**: Lists can point to REST APIs (`type: "remote"`), a Zustand value (`type: "state"` with `stateKey` and optional `filters`), or static arrays (`type: "local"`), rendering items via reusable `itemTemplate`s.
+- 🎯 **Action Dispatcher**: Navigation, alerts, bottom sheets, URLs, and state mutations dispatched from schema event handlers (`onPress`, `onAction`).
 - 🛡️ **Fail-Safe & Type-Safe**: Runtime schema validation via **Zod** + per-component **Error Boundaries** to ensure a malformed widget never crashes your app.
-- 💾 **Stale-While-Revalidate Caching**: Fast startup with offline AsyncStorage cache while fresh schemas synchronize in the background.
+- 💾 **Cache Policies**: `metadata.cachePolicy` is `no-cache`, `cache-first`, or `stale-while-revalidate`. `cacheTTL` is seconds. Stale-while-revalidate paints the AsyncStorage copy immediately and refreshes from Firestore in the background once the TTL has passed.
 - 🛠️ **Live In-App Schema Playground**: Test and hot-swap JSON schemas in real-time inside the app with immediate visual feedback.
 
 ---
@@ -148,7 +148,10 @@ sdui-React/
 │   │   │   ├── SDUITouchable.tsx
 │   │   │   └── SDUISpacer.tsx
 │   │   │
-│   │   ├── composites/            # High-level domain widgets
+│   │   ├── composites/            # Generic widgets. Copy and color come from the schema
+│   │   │   ├── Header.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── IconRow.tsx
 │   │   │   ├── HeroBanner.tsx
 │   │   │   ├── SectionHeader.tsx
 │   │   │   ├── ProductCard.tsx
@@ -209,7 +212,7 @@ npm run ios
 
 1. Open the app on Web, iOS, or Android.
 2. Tap the **`{ }`** button in the top right of the header.
-3. Paste any custom SDUI JSON or click one of the presets (**E-Commerce** or **FinTech / Crypto**).
+3. Paste any screen JSON or load a preset (**Catalog** or **FinTech / Crypto**). The same renderer paints whatever the schema describes.
 4. Tap **Apply Schema Live 🚀** — the screen instantly reconfigures without app restart!
 5. Tap the **👑 VIP / ⚡ FREE** toggle in the top bar to watch the `ConditionalRender` component immediately switch between `UpgradeCTA` and `PremiumBanner`.
 

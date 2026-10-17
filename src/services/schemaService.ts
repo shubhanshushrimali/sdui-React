@@ -3,12 +3,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
 import { SDUIScreen } from '../sdui/types';
 import { validateSDUIScreen } from '../sdui/SchemaValidator';
+import { decideCache, isCacheFresh, type CachePolicyName } from '../sdui/cachePolicy';
 
 // Import local bundled fallback schemas
 import homeSchema from '../schemas/home.json';
 import exploreSchema from '../schemas/explore.json';
 
-const LOCAL_FALLBACKS: Record<string, any> = {
+const LOCAL_FALLBACKS: Record<string, unknown> = {
   home: homeSchema,
   explore: exploreSchema,
 };
@@ -16,63 +17,103 @@ const LOCAL_FALLBACKS: Record<string, any> = {
 const CACHE_PREFIX = '@sdui_screen_cache_';
 const CACHE_TIME_PREFIX = '@sdui_screen_time_';
 
-export async function fetchSDUIScreen(screenId: string): Promise<SDUIScreen> {
+export interface FetchSDUIScreenOptions {
+  /** Skip cache short-circuits and ask the network. Used by pull-to-refresh. */
+  forceNetwork?: boolean;
+  /** Called when a stale screen is refreshed in the background. */
+  onUpdate?: (screen: SDUIScreen) => void;
+}
+
+interface CachedScreen {
+  screen: SDUIScreen;
+  ageMs: number;
+}
+
+function policyOf(screen: SDUIScreen | undefined): CachePolicyName {
+  return screen?.metadata?.cachePolicy ?? 'stale-while-revalidate';
+}
+
+function screensEqual(left: SDUIScreen, right: SDUIScreen): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function readCachedScreen(screenId: string): Promise<CachedScreen | null> {
   const cacheKey = `${CACHE_PREFIX}${screenId}`;
   const cacheTimeKey = `${CACHE_TIME_PREFIX}${screenId}`;
 
-  // 1. Try reading from Firebase Firestore if connected and configured
-  if (isFirebaseConfigured && db) {
-    try {
-      const docRef = doc(db, 'sdui_screens', screenId);
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const firestoreData = snapshot.data();
-        const validation = validateSDUIScreen(firestoreData);
-
-        if (validation.success) {
-          const validatedScreen = validation.data as SDUIScreen;
-          // Asynchronously update cache
-          AsyncStorage.setItem(cacheKey, JSON.stringify(validatedScreen)).catch(() => {});
-          AsyncStorage.setItem(cacheTimeKey, Date.now().toString()).catch(() => {});
-          return validatedScreen;
-        } else {
-          console.warn(`[SDUI] Firestore schema for "${screenId}" failed validation:`, validation.error);
-        }
-      }
-    } catch (firebaseErr) {
-      console.log(`[SDUI] Firebase fetch failed or not configured, using cache/fallback:`, (firebaseErr as any).message);
-    }
-  }
-
-  // 2. Try reading from AsyncStorage local cache
   try {
-    const cachedStr = await AsyncStorage.getItem(cacheKey);
-    if (cachedStr) {
-      const parsed = JSON.parse(cachedStr);
-      const validation = validateSDUIScreen(parsed);
-      if (validation.success) {
-        return validation.data as SDUIScreen;
-      }
-    }
+    const [cachedStr, cachedTime] = await Promise.all([
+      AsyncStorage.getItem(cacheKey),
+      AsyncStorage.getItem(cacheTimeKey),
+    ]);
+    if (!cachedStr) return null;
+
+    const parsed = JSON.parse(cachedStr);
+    const validation = validateSDUIScreen(parsed);
+    if (!validation.success) return null;
+
+    const savedAt = Number(cachedTime);
+    const ageMs = Number.isFinite(savedAt) ? Date.now() - savedAt : Number.POSITIVE_INFINITY;
+    return { screen: validation.data as SDUIScreen, ageMs };
   } catch (cacheErr) {
     console.warn(`[SDUI] Cache read error for "${screenId}":`, cacheErr);
+    return null;
+  }
+}
+
+async function persistCache(screenId: string, screen: SDUIScreen): Promise<void> {
+  const cacheKey = `${CACHE_PREFIX}${screenId}`;
+  const cacheTimeKey = `${CACHE_TIME_PREFIX}${screenId}`;
+
+  if (policyOf(screen) === 'no-cache') {
+    await Promise.all([
+      AsyncStorage.removeItem(cacheKey),
+      AsyncStorage.removeItem(cacheTimeKey),
+    ]).catch(() => {});
+    return;
   }
 
-  // 3. Fall back to bundled default schemas
-  const fallback = LOCAL_FALLBACKS[screenId];
-  if (fallback) {
-    const validation = validateSDUIScreen(fallback);
-    if (validation.success) {
-      return validation.data as SDUIScreen;
+  await Promise.all([
+    AsyncStorage.setItem(cacheKey, JSON.stringify(screen)),
+    AsyncStorage.setItem(cacheTimeKey, Date.now().toString()),
+  ]).catch(() => {});
+}
+
+async function fetchFromNetwork(screenId: string): Promise<SDUIScreen | null> {
+  if (!isFirebaseConfigured || !db) return null;
+
+  try {
+    const snapshot = await getDoc(doc(db, 'sdui_screens', screenId));
+    if (!snapshot.exists()) return null;
+
+    const validation = validateSDUIScreen(snapshot.data());
+    if (!validation.success) {
+      console.warn(`[SDUI] Firestore schema for "${screenId}" failed validation:`, validation.error);
+      return null;
     }
-  }
 
-  // 4. Default minimal screen if nothing found
+    return validation.data as SDUIScreen;
+  } catch (firebaseErr) {
+    console.warn(
+      `[SDUI] Firebase fetch failed for "${screenId}", using cache/fallback:`,
+      (firebaseErr as Error).message
+    );
+    return null;
+  }
+}
+
+function bundledScreen(screenId: string): SDUIScreen | null {
+  const fallback = LOCAL_FALLBACKS[screenId];
+  if (!fallback) return null;
+  const validation = validateSDUIScreen(fallback);
+  return validation.success ? (validation.data as SDUIScreen) : null;
+}
+
+function emptyScreen(screenId: string): SDUIScreen {
   return {
     screenId,
     version: 1,
-    metadata: { title: 'Screen' },
+    metadata: { title: 'Screen', cachePolicy: 'no-cache' },
     root: {
       type: 'View',
       style: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B0F19' },
@@ -85,4 +126,47 @@ export async function fetchSDUIScreen(screenId: string): Promise<SDUIScreen> {
       ],
     },
   };
+}
+
+async function revalidate(
+  screenId: string,
+  previous: SDUIScreen,
+  onUpdate?: (screen: SDUIScreen) => void
+): Promise<void> {
+  const fresh = await fetchFromNetwork(screenId);
+  if (!fresh) return;
+  await persistCache(screenId, fresh);
+  if (!screensEqual(previous, fresh)) onUpdate?.(fresh);
+}
+
+export async function fetchSDUIScreen(
+  screenId: string,
+  options?: FetchSDUIScreenOptions
+): Promise<SDUIScreen> {
+  const cached = await readCachedScreen(screenId);
+  const decision = decideCache({
+    policy: policyOf(cached?.screen),
+    hasCache: cached != null,
+    fresh: cached ? isCacheFresh(cached.screen.metadata?.cacheTTL, cached.ageMs) : false,
+    forceNetwork: options?.forceNetwork,
+  });
+
+  if (decision.action === 'use-cache' && cached) {
+    if (decision.revalidate) {
+      void revalidate(screenId, cached.screen, options?.onUpdate);
+    }
+    return cached.screen;
+  }
+
+  const fresh = await fetchFromNetwork(screenId);
+  if (fresh) {
+    await persistCache(screenId, fresh);
+    return fresh;
+  }
+
+  if (decision.action === 'fetch-network' && decision.keepStaleOnFailure && cached) {
+    return cached.screen;
+  }
+
+  return bundledScreen(screenId) ?? emptyScreen(screenId);
 }

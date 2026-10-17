@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   validate:
-    name: Typecheck & Schema Contract Test
+    name: Lint, test, and schema contract
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -28,11 +28,20 @@ jobs:
       - name: Setup Node and install
         uses: ./.github/actions/setup-node-app
 
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Unit tests
+        run: npm test
+
       - name: Validate SDUI schemas
         run: npm run test:schemas
+
+      - name: Contract coverage
+        run: npm run test:contract
 
   web-build-check:
     name: Expo Web Export & Bundle Integrity

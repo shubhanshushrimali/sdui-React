@@ -13,8 +13,8 @@ export const HeroBanner: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const ctaText = p.ctaText ? String(p.ctaText) : 'Explore Now';
   const backgroundImage = p.backgroundImage as string | undefined;
 
-  const handlePress = createActionHandler(node.actions?.onPress, context);
-  const handleCta = createActionHandler(node.actions?.onCtaPress || node.actions?.onPress, context);
+  const handlePress = createActionHandler(node.actions?.onPress, context, node);
+  const handleCta = createActionHandler(node.actions?.onCtaPress || node.actions?.onPress, context, node);
 
   const content = (
     <View style={styles.inner}>

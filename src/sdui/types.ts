@@ -40,8 +40,32 @@ export interface SDUIDataSource {
   body?: Record<string, unknown>;
   /** Key in zustand store for state-based data sources */
   stateKey?: string;
-  /** Local static data */
+  /** Local static data, or the catalog filtered by state */
   data?: unknown[];
+  /**
+   * When `type` is `state` and the store value is a string,
+   * `filters[stateValue]` selects which rows to keep.
+   * A missing key falls back to a text match on title, cuisine, and tags.
+   */
+  filters?: Record<string, SDUIListFilter>;
+}
+
+export type SDUIFilterOperator =
+  | 'eq'
+  | 'neq'
+  | 'gt'
+  | 'lt'
+  | 'gte'
+  | 'lte'
+  | 'contains'
+  | 'truthy'
+  | 'falsy'
+  | 'maxMinutes';
+
+export interface SDUIListFilter {
+  field: string;
+  operator?: SDUIFilterOperator;
+  value?: unknown;
 }
 
 // ─── Condition ─────────────────────────────────────────────────────
@@ -200,6 +224,9 @@ export interface SDUIScreen {
 
   /** Root component node */
   root: SDUINode;
+
+  /** Nodes drawn above the root. Use absolute styles for docks and toasts. */
+  overlay?: SDUINode[];
 }
 
 // ─── Template Context ──────────────────────────────────────────────
@@ -222,6 +249,9 @@ export interface SDUIComponentProps {
   node: SDUINode;
   context: SDUITemplateContext;
   children?: React.ReactNode;
+  /** Passed only to the screen root so it can own pull-to-refresh. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export type SDUIComponent = React.ComponentType<SDUIComponentProps>;

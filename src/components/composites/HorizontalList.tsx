@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { SDUIComponentProps, SDUINode } from '../../sdui/types';
 import { resolveProps } from '../../sdui/TemplateResolver';
+import { resolveListItems } from '../../sdui/resolveListItems';
 import { themeTokens } from '../../theme/tokens';
-import { useAppStore } from '../../store/useAppStore';
+import { selectSDUIValue, useAppStore } from '../../store/useAppStore';
 
 // We receive renderNode callback from SDUIRenderer via context or prop
 interface ListComponentProps extends SDUIComponentProps {
@@ -21,53 +22,50 @@ export const HorizontalList: React.FC<ListComponentProps> = ({
   const dataSource = node.dataSource;
   const itemTemplate = node.itemTemplate;
 
-  const [remoteData, setRemoteData] = useState<any[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [remote, setRemote] = useState<{ url: string; data: unknown[] } | null>(null);
+  const [failure, setFailure] = useState<{ url: string; message: string } | null>(null);
 
-  // If dataSource is "state", grab state from store
-  const activeCategory = useAppStore((state) => state.activeCategory);
+  const stateKey = dataSource?.type === 'state' ? dataSource.stateKey : undefined;
+  const stateValue = useAppStore((state) => selectSDUIValue(state, stateKey));
+
+  const remoteUrl = dataSource?.type === 'remote' ? dataSource.url : undefined;
+  const remoteMethod = dataSource?.type === 'remote' ? dataSource.method : undefined;
 
   useEffect(() => {
-    if (!dataSource || dataSource.type !== 'remote' || !dataSource.url) return;
+    if (!remoteUrl) return;
+    const controller = new AbortController();
 
-    let isMounted = true;
-    setLoading(true);
-
-    fetch(dataSource.url, {
-      method: dataSource.method || 'GET',
-      headers: dataSource.headers,
+    fetch(remoteUrl, {
+      method: remoteMethod || 'GET',
+      headers: dataSource?.headers,
+      signal: controller.signal,
     })
       .then((res) => res.json())
       .then((data) => {
-        if (!isMounted) return;
         const arrayData = Array.isArray(data) ? data : data.items || data.data || [];
-        setRemoteData(arrayData);
-        setLoading(false);
+        setRemote({ url: remoteUrl, data: arrayData });
+        setFailure(null);
       })
-      .catch((err) => {
-        if (!isMounted) return;
-        setError(err.message);
-        setLoading(false);
+      .catch((err: Error) => {
+        if (controller.signal.aborted) return;
+        setFailure({ url: remoteUrl, message: err.message });
       });
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
-  }, [dataSource?.url]);
+  }, [remoteUrl, remoteMethod, dataSource?.headers]);
 
-  // Determine items list
-  let itemsToRender: any[] = [];
-  if (dataSource) {
-    if (dataSource.type === 'local' && Array.isArray(dataSource.data)) {
-      itemsToRender = dataSource.data;
-    } else if (dataSource.type === 'remote' && remoteData) {
-      itemsToRender = remoteData;
-    } else if (dataSource.type === 'state') {
-      // Demo state filtering
-      itemsToRender = (dataSource.data as any[]) || [];
-    }
-  }
+  const remoteData = remote?.url === remoteUrl ? remote.data : null;
+  const loading = Boolean(remoteUrl) && remote?.url !== remoteUrl && failure?.url !== remoteUrl;
+  const error = failure?.url === remoteUrl ? failure.message : null;
+
+  const itemsToRender = resolveListItems(dataSource, stateValue, remoteData);
+  const filteredEmpty =
+    dataSource?.type === 'state' &&
+    !loading &&
+    itemsToRender.length === 0 &&
+    (Array.isArray(dataSource.data) ? dataSource.data.length > 0 : !Array.isArray(stateValue));
 
   return (
     <View style={[styles.wrapper, node.style as any]}>
@@ -83,6 +81,10 @@ export const HorizontalList: React.FC<ListComponentProps> = ({
         </View>
       )}
 
+      {filteredEmpty && (
+        <Text style={styles.emptyText}>Nothing matches this filter.</Text>
+      )}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -94,13 +96,14 @@ export const HorizontalList: React.FC<ListComponentProps> = ({
         {/* If using dataSource and itemTemplate */}
         {dataSource && itemTemplate && renderChildNode
           ? itemsToRender.map((item, index) => {
+              const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
               const itemContext = {
                 ...context,
                 item,
                 index,
               };
               return (
-                <View key={item.id ? String(item.id) : `item-${index}`}>
+                <View key={record?.id != null ? String(record.id) : `item-${index}`}>
                   {renderChildNode(itemTemplate, itemContext)}
                 </View>
               );
@@ -128,5 +131,11 @@ const styles = StyleSheet.create({
   errorText: {
     color: themeTokens.colors.error,
     fontSize: 12,
+  },
+  emptyText: {
+    color: themeTokens.colors.textMuted,
+    fontSize: 13,
+    paddingHorizontal: themeTokens.spacing.lg,
+    paddingVertical: themeTokens.spacing.md,
   },
 });

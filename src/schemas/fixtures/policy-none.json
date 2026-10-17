@@ -1,0 +1,12 @@
+{
+  "screenId": "policy-none",
+  "version": 1,
+  "metadata": {
+    "title": "No transition",
+    "description": "Transition none is part of the screen contract.",
+    "cachePolicy": "stale-while-revalidate",
+    "cacheTTL": 120,
+    "transition": "none"
+  },
+  "root": { "type": "View" }
+}

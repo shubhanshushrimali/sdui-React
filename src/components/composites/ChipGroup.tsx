@@ -3,19 +3,18 @@ import { ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SDUIComponentProps } from '../../sdui/types';
 import { resolveProps } from '../../sdui/TemplateResolver';
 import { themeTokens, palette } from '../../theme/tokens';
-import { useAppStore } from '../../store/useAppStore';
+import { selectSDUIValue, useAppStore } from '../../store/useAppStore';
 
 export const ChipGroup: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const p = resolveProps(node.props, context);
-  const chips = (p.chips as Array<{ id: string; label: string; icon?: string }>) || [
-    { id: 'All', label: 'All Items' },
-    { id: 'New', label: '⚡ New Arrivals' },
-    { id: 'Trending', label: '🔥 Trending' },
-    { id: 'Sale', label: '🏷️ Deals' },
+  const chips = (p.chips as { id: string; label: string }[]) || [
+    { id: 'All', label: 'All' },
   ];
+  const stateKey = String(p.stateKey ?? 'activeCategory');
+  const accent = String(p.accentColor ?? palette.primary600);
 
-  const activeCategory = useAppStore((state) => state.activeCategory);
-  const setActiveCategory = useAppStore((state) => state.setActiveCategory);
+  const current = useAppStore((state) => selectSDUIValue(state, stateKey));
+  const setStateValue = useAppStore((state) => state.setStateValue);
 
   return (
     <ScrollView
@@ -25,13 +24,13 @@ export const ChipGroup: React.FC<SDUIComponentProps> = ({ node, context }) => {
       style={node.style as any}
     >
       {chips.map((chip) => {
-        const isSelected = activeCategory === chip.id || activeCategory === chip.label;
+        const isSelected = String(current ?? '') === chip.id || String(current ?? '') === chip.label;
         return (
           <TouchableOpacity
             key={chip.id}
-            onPress={() => setActiveCategory(chip.id)}
+            onPress={() => setStateValue(stateKey, chip.id)}
             activeOpacity={0.7}
-            style={[styles.chip, isSelected && styles.chipActive]}
+            style={[styles.chip, isSelected && { backgroundColor: accent, borderColor: accent }]}
           >
             <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
               {chip.label}
@@ -56,10 +55,6 @@ const styles = StyleSheet.create({
     backgroundColor: themeTokens.colors.surface,
     borderWidth: 1,
     borderColor: themeTokens.colors.border,
-  },
-  chipActive: {
-    backgroundColor: palette.primary600,
-    borderColor: palette.primary500,
   },
   chipText: {
     color: themeTokens.colors.textSecondary,

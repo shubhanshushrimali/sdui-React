@@ -1,30 +1,79 @@
 {
   "screenId": "home",
-  "version": 3,
+  "version": 4,
   "metadata": {
-    "title": "Swiggy & Zomato SDUI",
-    "analytics": { "screenName": "swiggy_home_v3" },
+    "title": "Catalog",
+    "analytics": { "screenName": "catalog_home" },
     "cachePolicy": "stale-while-revalidate",
     "cacheTTL": 300
   },
+  "overlay": [
+    {
+      "id": "schema-dock",
+      "type": "Touchable",
+      "analytics": { "clickEvent": "dock_click" },
+      "style": {
+        "position": "absolute",
+        "left": 16,
+        "right": 16,
+        "bottom": 16,
+        "backgroundColor": "#4F46E5",
+        "borderRadius": 16,
+        "paddingHorizontal": 16,
+        "paddingVertical": 14,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "alignItems": "center"
+      },
+      "actions": {
+        "onPress": {
+          "type": "showBottomSheet",
+          "payload": {
+            "title": "This bar came from the schema",
+            "message": "Swap the JSON and this dock, its copy, and its color change with it.",
+            "primaryLabel": "Close"
+          }
+        }
+      },
+      "children": [
+        {
+          "type": "Text",
+          "props": { "text": "Schema dock" },
+          "style": { "color": "#FFFFFF", "fontWeight": "800", "fontSize": 14 }
+        },
+        {
+          "type": "Text",
+          "props": { "text": "Open" },
+          "style": { "color": "#E0E7FF", "fontWeight": "700", "fontSize": 13 }
+        }
+      ]
+    }
+  ],
   "root": {
     "type": "ScrollView",
     "props": { "showsIndicators": false },
     "style": { "backgroundColor": "#070B14" },
     "children": [
       {
-        "type": "SwiggyHeader",
+        "id": "catalog-header",
+        "type": "Header",
+        "analytics": {
+          "impressionEvent": "header_impression",
+          "clickEvent": "header_click"
+        },
         "props": {
-          "locationTitle": "Home",
-          "locationAddress": "100ft Road, Indiranagar, Bengaluru",
-          "searchPlaceholder": "Search 'Biryani', 'Cold Coffee', 'Burgers'..."
+          "title": "Atelier",
+          "subtitle": "A catalog shipped entirely as JSON",
+          "searchPlaceholder": "Search objects, rooms, materials",
+          "accentColor": "#818CF8"
         },
         "actions": {
-          "onLocationPress": {
-            "type": "showToast",
+          "onPress": {
+            "type": "showBottomSheet",
             "payload": {
-              "title": "Location Selector",
-              "message": "Swiggy SDUI: Location changed to Indiranagar, Bengaluru"
+              "title": "Atelier",
+              "message": "The header title, color, and actions are fields on this node.",
+              "primaryLabel": "Done"
             }
           },
           "onSearchPress": {
@@ -34,81 +83,67 @@
         }
       },
       {
-        "type": "CategoryStoryCircles",
+        "type": "IconRow",
         "props": {
-          "title": "WHAT'S ON YOUR MIND?",
-          "categories": [
+          "title": "ROOMS",
+          "stateKey": "activeCategory",
+          "accentColor": "#818CF8",
+          "items": [
             {
-              "id": "biryani",
-              "label": "Biryani",
-              "image": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=300&q=80"
+              "id": "Studio",
+              "label": "Studio",
+              "image": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=300&q=80"
             },
             {
-              "id": "pizza",
-              "label": "Pizza",
-              "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300&q=80"
+              "id": "Home",
+              "label": "Home",
+              "image": "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=300&q=80"
             },
             {
-              "id": "burgers",
-              "label": "Burgers",
-              "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&q=80"
-            },
-            {
-              "id": "rolls",
-              "label": "Rolls",
-              "image": "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=300&q=80"
-            },
-            {
-              "id": "desserts",
-              "label": "Desserts",
-              "image": "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=300&q=80"
-            },
-            {
-              "id": "coffee",
-              "label": "Cold Brew",
-              "image": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300&q=80"
+              "id": "Travel",
+              "label": "Travel",
+              "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&q=80"
             }
           ]
         }
       },
       {
         "type": "ConditionalRender",
-        "condition": {
-          "expression": "{{user.isPremium}}"
-        },
+        "condition": { "expression": "{{user.isPremium}}" },
         "ifTrue": {
           "type": "PremiumBanner",
           "props": {
-            "title": "👑 ZOMATO GOLD / SWIGGY ONE ACTIVE",
-            "message": "Unlimited Free Deliveries on orders above ₹149 • Extra 15% discount applied automatically on all restaurants."
+            "title": "Member pricing is on",
+            "message": "This branch renders because user.isPremium is true."
           }
         },
         "ifFalse": {
           "type": "UpgradeCTA",
           "props": {
-            "title": "Join Swiggy One / Gold VIP",
-            "message": "Save an average of ₹4,200/year with 0 delivery fee and exclusive VIP dining privileges.",
-            "buttonText": "Get 3 Months for ₹149"
+            "title": "Unlock member pricing",
+            "message": "The other branch is a different component in the same JSON node.",
+            "buttonText": "Switch member state"
           }
         }
       },
       {
         "type": "ChipGroup",
         "props": {
+          "stateKey": "activeCategory",
+          "accentColor": "#4F46E5",
           "chips": [
-            { "id": "All", "label": "🍽️ All Cuisines" },
-            { "id": "Fast", "label": "⚡ Fast (<25m)" },
-            { "id": "PureVeg", "label": "🌱 Pure Veg" },
-            { "id": "TopRated", "label": "★ 4.5+ Rating" },
-            { "id": "Offers", "label": "🏷️ Great Offers" }
+            { "id": "All", "label": "All" },
+            { "id": "Featured", "label": "Featured" },
+            { "id": "OnSale", "label": "On sale" },
+            { "id": "TopRated", "label": "Top rated" }
           ]
         }
       },
       {
         "type": "SectionHeader",
         "props": {
-          "title": "Top Picks For You",
-          "subtitle": "Most ordered in Indiranagar right now",
+          "title": "Selected for you",
+          "subtitle": "Filtered by the chip and room state above",
           "showSeeAll": true
         },
         "actions": {
@@ -122,137 +157,149 @@
         "type": "HorizontalList",
         "props": { "itemSpacing": 14 },
         "dataSource": {
-          "type": "local",
+          "type": "state",
+          "stateKey": "activeCategory",
+          "filters": {
+            "Featured": { "field": "featured", "operator": "eq", "value": true },
+            "OnSale": { "field": "badge", "operator": "truthy" },
+            "TopRated": { "field": "rating", "operator": "gte", "value": 4.5 }
+          },
           "data": [
             {
-              "id": "food_1",
-              "title": "Special Dum Chicken Biryani",
-              "restaurant": "Meghana Foods",
-              "cuisine": "Biryani • Andhra • Spicy",
-              "rating": "4.6",
-              "deliveryTime": "20-25 mins",
-              "distance": "1.8 km",
-              "price": "₹310",
-              "originalPrice": "₹380",
-              "discountRibbon": "60% OFF UP TO ₹120",
-              "isVeg": false,
-              "image": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=80"
+              "id": "item_lamp",
+              "title": "Arc floor lamp",
+              "subtitle": "Brass stem, linen shade",
+              "category": "Studio",
+              "meta": "Studio",
+              "price": "$180",
+              "compareAt": "$220",
+              "badge": "New",
+              "featured": true,
+              "rating": 4.8,
+              "image": "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=600&q=80"
             },
             {
-              "id": "food_2",
-              "title": "Farmhouse Truffle Pizza",
-              "restaurant": "Brik Oven Gourmet",
-              "cuisine": "Pizza • Italian • Wood-fired",
-              "rating": "4.7",
-              "deliveryTime": "30-35 mins",
-              "distance": "2.4 km",
-              "price": "₹450",
-              "originalPrice": "₹550",
-              "discountRibbon": "FLAT ₹150 OFF",
-              "isVeg": true,
-              "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80"
+              "id": "item_pack",
+              "title": "Field pack",
+              "subtitle": "Waxed canvas, 18L",
+              "category": "Travel",
+              "meta": "Travel",
+              "price": "$96",
+              "featured": false,
+              "rating": 4.1,
+              "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&q=80"
             },
             {
-              "id": "food_3",
-              "title": "All-American Cheeseburger",
-              "restaurant": "Truffles Cafe",
-              "cuisine": "Burgers • American • Shakes",
-              "rating": "4.5",
-              "deliveryTime": "25-30 mins",
-              "distance": "1.2 km",
-              "price": "₹260",
-              "originalPrice": "₹320",
-              "discountRibbon": "20% OFF",
-              "isVeg": false,
-              "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80"
+              "id": "item_speaker",
+              "title": "Shelf speaker",
+              "subtitle": "Walnut cabinet",
+              "category": "Home",
+              "meta": "Home",
+              "price": "$240",
+              "compareAt": "$280",
+              "badge": "Sale",
+              "featured": true,
+              "rating": 4.7,
+              "image": "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=600&q=80"
             }
           ]
         },
         "itemTemplate": {
-          "type": "RestaurantDishCard",
-          "style": { "width": 260 },
+          "type": "Card",
+          "analytics": { "clickEvent": "card_click", "properties": { "list": "selected" } },
+          "style": { "width": 220 },
           "props": {
-            "id": "{{item.id}}",
             "title": "{{item.title}}",
-            "restaurant": "{{item.restaurant}}",
-            "cuisine": "{{item.cuisine}}",
-            "rating": "{{item.rating}}",
-            "deliveryTime": "{{item.deliveryTime}}",
-            "distance": "{{item.distance}}",
+            "subtitle": "{{item.subtitle}}",
+            "meta": "{{item.meta}}",
             "price": "{{item.price}}",
-            "originalPrice": "{{item.originalPrice}}",
-            "discountRibbon": "{{item.discountRibbon}}",
-            "isVeg": "{{item.isVeg}}",
-            "image": "{{item.image}}"
+            "compareAt": "{{item.compareAt}}",
+            "badge": "{{item.badge}}",
+            "image": "{{item.image}}",
+            "actionLabel": "Details",
+            "accentColor": "#4F46E5"
+          },
+          "actions": {
+            "onPress": {
+              "type": "showBottomSheet",
+              "payload": {
+                "title": "{{item.title}}",
+                "message": "{{item.subtitle}} · {{item.price}}",
+                "primaryLabel": "Close"
+              }
+            }
           }
         }
       },
       {
         "type": "SectionHeader",
         "props": {
-          "title": "Trending Dishes Around You",
-          "subtitle": "Hand-picked culinary bestsellers"
+          "title": "Also in the schema",
+          "subtitle": "Same card component, different layout width"
         }
       },
       {
         "type": "VerticalList",
         "props": { "gap": 16 },
         "dataSource": {
-          "type": "local",
+          "type": "state",
+          "stateKey": "activeCategory",
+          "filters": {
+            "Featured": { "field": "featured", "operator": "eq", "value": true },
+            "OnSale": { "field": "badge", "operator": "truthy" },
+            "TopRated": { "field": "rating", "operator": "gte", "value": 4.5 }
+          },
           "data": [
             {
-              "id": "v_food_1",
-              "title": "Afghani Malai Chicken Tikka",
-              "restaurant": "The Great Indian Kebab Factory",
-              "cuisine": "Mughlai • Tandoor • North Indian",
-              "rating": "4.8",
-              "deliveryTime": "25-30 mins",
-              "distance": "2.8 km",
-              "price": "₹380",
-              "originalPrice": "₹450",
-              "discountRibbon": "FLAT ₹100 OFF",
-              "isVeg": false,
-              "image": "https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?w=600&q=80"
+              "id": "item_cup",
+              "title": "Stoneware cup",
+              "subtitle": "Speckled glaze",
+              "category": "Home",
+              "meta": "Home",
+              "price": "$28",
+              "badge": "Sale",
+              "featured": true,
+              "rating": 4.6,
+              "image": "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=600&q=80"
             },
             {
-              "id": "v_food_2",
-              "title": "Double Chocolate Belgian Waffle",
-              "restaurant": "Belgian Waffle Co.",
-              "cuisine": "Desserts • Waffles • Shakes",
-              "rating": "4.7",
-              "deliveryTime": "15-20 mins",
-              "distance": "1.0 km",
-              "price": "₹190",
-              "originalPrice": "₹240",
-              "discountRibbon": "BESTSELLER",
-              "isVeg": true,
-              "image": "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=600&q=80"
+              "id": "item_notes",
+              "title": "Cloth notebook",
+              "subtitle": "Plain pages, 192",
+              "category": "Studio",
+              "meta": "Studio",
+              "price": "$18",
+              "featured": false,
+              "rating": 4.0,
+              "image": "https://images.unsplash.com/photo-1516414447565-b14be0adf13e?w=600&q=80"
             }
           ]
         },
         "itemTemplate": {
-          "type": "RestaurantDishCard",
+          "type": "Card",
+          "analytics": { "clickEvent": "card_click", "properties": { "list": "also" } },
           "style": { "width": "100%" },
           "props": {
-            "id": "{{item.id}}",
             "title": "{{item.title}}",
-            "restaurant": "{{item.restaurant}}",
-            "cuisine": "{{item.cuisine}}",
-            "rating": "{{item.rating}}",
-            "deliveryTime": "{{item.deliveryTime}}",
-            "distance": "{{item.distance}}",
+            "subtitle": "{{item.subtitle}}",
+            "meta": "{{item.meta}}",
             "price": "{{item.price}}",
-            "originalPrice": "{{item.originalPrice}}",
-            "discountRibbon": "{{item.discountRibbon}}",
-            "isVeg": "{{item.isVeg}}",
-            "image": "{{item.image}}"
+            "badge": "{{item.badge}}",
+            "image": "{{item.image}}",
+            "accentColor": "#4F46E5"
+          },
+          "actions": {
+            "onPress": {
+              "type": "showToast",
+              "payload": {
+                "title": "{{item.title}}",
+                "message": "Action payload is also templated from the item."
+              }
+            }
           }
         }
       },
-      {
-        "type": "Spacer",
-        "props": { "size": 80 }
-      }
+      { "type": "Spacer", "props": { "size": 96 } }
     ]
   }
 }

@@ -1,3 +1,5 @@
+import { SDUI_COMPONENT_TYPES, SDUIComponentType } from './catalog';
+import { resolveComponentName } from './resolveComponent';
 import { SDUIComponent } from './types';
 
 // Primitives
@@ -19,9 +21,9 @@ import { MetricCard } from '../components/composites/MetricCard';
 import { UpgradeCTA } from '../components/composites/UpgradeCTA';
 import { PremiumBanner } from '../components/composites/PremiumBanner';
 import { Button } from '../components/composites/Button';
-import { SwiggyHeader } from '../components/composites/SwiggyHeader';
-import { CategoryStoryCircles } from '../components/composites/CategoryStoryCircles';
-import { RestaurantDishCard } from '../components/composites/RestaurantDishCard';
+import { Header } from '../components/composites/Header';
+import { Card } from '../components/composites/Card';
+import { IconRow } from '../components/composites/IconRow';
 
 // Conditional
 import { ConditionalRender } from '../components/conditional/ConditionalRender';
@@ -34,39 +36,47 @@ class ComponentRegistryManager {
   }
 
   private registerDefaults() {
-    // Primitives
-    this.register('View', SDUIView);
+    const implementations: Record<SDUIComponentType, SDUIComponent> = {
+      View: SDUIView,
+      Text: SDUIText,
+      Image: SDUIImage,
+      ScrollView: SDUIScrollView,
+      Touchable: SDUITouchable,
+      Spacer: SDUISpacer,
+      HeroBanner,
+      SectionHeader,
+      ProductCard,
+      HorizontalList: HorizontalList as SDUIComponent,
+      VerticalList: VerticalList as SDUIComponent,
+      ChipGroup,
+      MetricCard,
+      UpgradeCTA,
+      PremiumBanner,
+      Button,
+      Header,
+      Card,
+      IconRow,
+      ConditionalRender: ConditionalRender as SDUIComponent,
+    };
+
+    for (const type of SDUI_COMPONENT_TYPES) {
+      this.register(type, implementations[type]);
+    }
+
     this.register('SDUIView', SDUIView);
-    this.register('Text', SDUIText);
     this.register('SDUIText', SDUIText);
-    this.register('Image', SDUIImage);
     this.register('SDUIImage', SDUIImage);
-    this.register('ScrollView', SDUIScrollView);
     this.register('SDUIScrollView', SDUIScrollView);
-    this.register('Touchable', SDUITouchable);
     this.register('SDUITouchable', SDUITouchable);
-    this.register('Spacer', SDUISpacer);
     this.register('SDUISpacer', SDUISpacer);
+  }
 
-    // Composites
-    this.register('HeroBanner', HeroBanner);
-    this.register('SectionHeader', SectionHeader);
-    this.register('ProductCard', ProductCard);
-    this.register('HorizontalList', HorizontalList as any);
-    this.register('VerticalList', VerticalList as any);
-    this.register('ChipGroup', ChipGroup);
-    this.register('MetricCard', MetricCard);
-    this.register('UpgradeCTA', UpgradeCTA);
-    this.register('PremiumBanner', PremiumBanner);
-    this.register('Button', Button);
-
-    // Swiggy & Zomato Components
-    this.register('SwiggyHeader', SwiggyHeader);
-    this.register('CategoryStoryCircles', CategoryStoryCircles);
-    this.register('RestaurantDishCard', RestaurantDishCard);
-
-    // Conditional
-    this.register('ConditionalRender', ConditionalRender as any);
+  public resolve(type: string, fallbackType?: string) {
+    const resolved = resolveComponentName((name) => this.has(name), type, fallbackType);
+    if (!resolved) return null;
+    const component = this.get(resolved.type);
+    if (!component) return null;
+    return { component, resolvedType: resolved.type, degraded: resolved.degraded };
   }
 
   public register(type: string, component: SDUIComponent): void {

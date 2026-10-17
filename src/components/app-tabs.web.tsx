@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#10B981', // Swiggy emerald green
+    color: '#10B981',
     fontWeight: '800',
   },
 });

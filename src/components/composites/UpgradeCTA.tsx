@@ -20,7 +20,7 @@ export const UpgradeCTA: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const handleUpgrade = () => {
     togglePremium();
     if (node.actions?.onPress) {
-      createActionHandler(node.actions.onPress, context)?.();
+      createActionHandler(node.actions.onPress, context, node)?.();
     }
   };
 

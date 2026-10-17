@@ -1,0 +1,110 @@
+{
+  "screenId": "conformance-components",
+  "version": 1,
+  "metadata": {
+    "title": "Component coverage",
+    "description": "One node for every registered component, including fallback and list fields.",
+    "analytics": { "screenName": "conformance_components" },
+    "cachePolicy": "cache-first",
+    "cacheTTL": 60,
+    "transition": "fade"
+  },
+  "overlay": [
+    {
+      "id": "overlay-image",
+      "type": "Image",
+      "fallbackType": "Text",
+      "props": { "source": "https://example.com/mark.png" },
+      "analytics": {
+        "impressionEvent": "overlay_impression",
+        "clickEvent": "overlay_click",
+        "properties": { "slot": "overlay" }
+      }
+    }
+  ],
+  "root": {
+    "id": "root",
+    "type": "ScrollView",
+    "style": { "backgroundColor": "#070B14" },
+    "children": [
+      { "type": "Header", "props": { "title": "Coverage" } },
+      { "type": "IconRow", "props": { "items": [{ "id": "All", "label": "All" }] } },
+      { "type": "HeroBanner", "props": { "title": "Hero" } },
+      { "type": "SectionHeader", "props": { "title": "Section" } },
+      { "type": "ChipGroup", "props": { "chips": [{ "id": "All", "label": "All" }] } },
+      { "type": "MetricCard", "props": { "label": "Total", "value": "1" } },
+      { "type": "PremiumBanner", "props": { "title": "Member" } },
+      { "type": "UpgradeCTA", "props": { "title": "Upgrade" } },
+      { "type": "Button", "props": { "title": "Press" } },
+      { "type": "ProductCard", "props": { "title": "Object", "price": "$1" } },
+      { "type": "Card", "props": { "title": "Card" } },
+      { "type": "Spacer", "props": { "size": 8 } },
+      {
+        "type": "View",
+        "children": [
+          { "type": "Text", "props": { "text": "Body" } },
+          {
+            "type": "Touchable",
+            "actions": {
+              "onPress": { "type": "noop" }
+            },
+            "children": [{ "type": "Text", "props": { "text": "Tap" } }]
+          }
+        ]
+      },
+      {
+        "type": "HorizontalList",
+        "dataSource": {
+          "type": "local",
+          "data": [{ "id": "1", "title": "Local" }]
+        },
+        "itemTemplate": {
+          "type": "Text",
+          "props": { "text": "{{item.title}}" }
+        }
+      },
+      {
+        "type": "VerticalList",
+        "dataSource": {
+          "type": "remote",
+          "url": "https://example.com/items",
+          "method": "GET",
+          "headers": { "Accept": "application/json" },
+          "body": { "page": 1 }
+        },
+        "itemTemplate": {
+          "type": "Text",
+          "props": { "text": "{{item.title}}" }
+        }
+      },
+      {
+        "type": "HorizontalList",
+        "dataSource": {
+          "type": "state",
+          "stateKey": "activeCategory",
+          "method": "POST",
+          "filters": {
+            "Eq": { "field": "featured", "operator": "eq", "value": true },
+            "Neq": { "field": "featured", "operator": "neq", "value": false },
+            "Gt": { "field": "rating", "operator": "gt", "value": 1 },
+            "Lt": { "field": "rating", "operator": "lt", "value": 5 },
+            "Gte": { "field": "rating", "operator": "gte", "value": 4 },
+            "Lte": { "field": "rating", "operator": "lte", "value": 5 },
+            "Contains": { "field": "title", "operator": "contains", "value": "a" },
+            "Truthy": { "field": "badge", "operator": "truthy" },
+            "Falsy": { "field": "archived", "operator": "falsy" },
+            "Fast": { "field": "eta", "operator": "maxMinutes", "value": 25 }
+          },
+          "data": [{ "id": "1", "title": "State", "featured": true, "rating": 5 }]
+        },
+        "itemTemplate": { "type": "Card", "props": { "title": "{{item.title}}" } }
+      },
+      {
+        "type": "ConditionalRender",
+        "condition": { "expression": "{{user.isPremium}}", "operator": "truthy" },
+        "ifTrue": { "type": "Text", "props": { "text": "yes" } },
+        "ifFalse": { "type": "Text", "props": { "text": "no" } }
+      }
+    ]
+  }
+}

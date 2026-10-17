@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { SDUIScreen } from '../sdui/types';
 import { fetchSDUIScreen } from '../services/schemaService';
 import { useAppStore } from '../store/useAppStore';
@@ -6,57 +6,85 @@ import { validateSDUIScreen } from '../sdui/SchemaValidator';
 import homeSchema from '../schemas/home.json';
 import exploreSchema from '../schemas/explore.json';
 
-const LOCAL_FALLBACKS: Record<string, any> = {
-  home: homeSchema,
-  explore: exploreSchema,
+const LOCAL_FALLBACKS: Record<string, SDUIScreen> = {
+  home: homeSchema as SDUIScreen,
+  explore: exploreSchema as SDUIScreen,
 };
 
 export function useSDUIScreen(screenId: string) {
   // Initialize synchronously with local fallback for instant first paint & SSR support
   const [screen, setScreen] = useState<SDUIScreen | null>(() => {
-    return (LOCAL_FALLBACKS[screenId] as SDUIScreen) || null;
+    return LOCAL_FALLBACKS[screenId] || null;
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestSeq = useRef(0);
 
   const liveCustomSchema = useAppStore((state) => state.liveCustomSchema);
 
-  const loadScreen = useCallback(async () => {
-    // If live custom schema is active in dev mode, use that
-    if (liveCustomSchema && screenId === 'home') {
-      try {
-        const parsed = JSON.parse(liveCustomSchema);
-        const validation = validateSDUIScreen(parsed);
-        if (validation.success) {
-          setScreen(validation.data as SDUIScreen);
-          return;
-        }
-      } catch (e: any) {
-        console.warn('[SDUI] Live schema parse error:', e.message);
-      }
-    }
-
+  const liveScreen = useMemo(() => {
+    if (!liveCustomSchema || screenId !== 'home') return null;
     try {
-      const data = await fetchSDUIScreen(screenId);
-      if (data) {
-        setScreen(data);
-      }
-    } catch (err: any) {
-      // If error occurs, keep existing fallback screen
-      setError(err?.message || 'Failed to load screen');
-    } finally {
-      setLoading(false);
+      const validation = validateSDUIScreen(JSON.parse(liveCustomSchema));
+      return validation.success ? (validation.data as SDUIScreen) : null;
+    } catch (parseError) {
+      console.warn('[SDUI] Live schema parse error:', (parseError as Error).message);
+      return null;
     }
+  }, [liveCustomSchema, screenId]);
+
+  const refresh = useCallback(() => {
+    if (liveCustomSchema && screenId === 'home') return;
+    const request = ++requestSeq.current;
+    setLoading(true);
+    setError(null);
+    void fetchSDUIScreen(screenId, {
+      forceNetwork: true,
+      onUpdate: (next) => {
+        if (requestSeq.current === request) setScreen(next);
+      },
+    })
+      .then((data) => {
+        if (requestSeq.current !== request) return;
+        if (data) setScreen(data);
+        setError(null);
+      })
+      .catch((error: Error) => {
+        if (requestSeq.current !== request) return;
+        setError(error?.message || 'Failed to load screen');
+      })
+      .finally(() => {
+        if (requestSeq.current === request) setLoading(false);
+      });
   }, [screenId, liveCustomSchema]);
 
   useEffect(() => {
-    loadScreen();
-  }, [loadScreen]);
+    if (liveCustomSchema && screenId === 'home') return;
+    const request = ++requestSeq.current;
+    let active = true;
+    void fetchSDUIScreen(screenId, {
+      onUpdate: (next) => {
+        if (active && requestSeq.current === request) setScreen(next);
+      },
+    })
+      .then((data) => {
+        if (!active || requestSeq.current !== request) return;
+        if (data) setScreen(data);
+        setError(null);
+      })
+      .catch((error: Error) => {
+        if (!active || requestSeq.current !== request) return;
+        setError(error?.message || 'Failed to load screen');
+      });
+    return () => {
+      active = false;
+    };
+  }, [screenId, liveCustomSchema]);
 
   return {
-    screen,
+    screen: liveScreen ?? screen,
     loading,
     error,
-    refresh: loadScreen,
+    refresh,
   };
 }

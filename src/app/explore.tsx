@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSDUIScreen } from '../hooks/useSDUIScreen';
 import { SDUIRenderer } from '../sdui/SDUIRenderer';
-import { themeTokens, palette } from '../theme/tokens';
+import { palette } from '../theme/tokens';
 
 export default function ExploreScreen() {
   const { width } = useWindowDimensions();
@@ -35,7 +35,7 @@ export default function ExploreScreen() {
                 <Text style={styles.logoBadgeText}>SDUI</Text>
               </View>
               <View>
-                <Text style={styles.headerTitle}>Architecture & Guide</Text>
+                <Text style={styles.headerTitle}>{screen?.metadata?.title ?? 'Explore'}</Text>
                 <Text style={styles.headerSubtitle}>v{screen?.version ?? 1} • Interactive Docs</Text>
               </View>
             </View>
@@ -66,13 +66,18 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             </ScrollView>
           ) : screen ? (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              style={styles.scrollBody}
-              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
-            >
-              <SDUIRenderer node={screen.root} />
-            </ScrollView>
+            <View style={styles.scrollBody}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollFill}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
+              >
+                <SDUIRenderer node={screen.root} />
+              </ScrollView>
+              {screen.overlay?.map((node, index) => (
+                <SDUIRenderer key={node.id ?? `overlay-${index}`} node={node} />
+              ))}
+            </View>
           ) : null}
         </SafeAreaView>
       </View>
@@ -151,7 +156,11 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     flex: 1,
+    position: 'relative',
     backgroundColor: '#070B14',
+  },
+  scrollFill: {
+    flex: 1,
   },
   centerContainer: {
     flex: 1,

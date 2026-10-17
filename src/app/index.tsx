@@ -4,8 +4,6 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  RefreshControl,
-  ScrollView,
   TouchableOpacity,
   Modal,
   TextInput,
@@ -19,8 +17,7 @@ import { useSDUIScreen } from '../hooks/useSDUIScreen';
 import { SDUIRenderer } from '../sdui/SDUIRenderer';
 import { useUserStore } from '../store/useUserStore';
 import { useAppStore } from '../store/useAppStore';
-import { FloatingCartBar } from '../components/composites/FloatingCartBar';
-import { themeTokens, palette } from '../theme/tokens';
+import { palette } from '../theme/tokens';
 import homeSchema from '../schemas/home.json';
 
 const FINTECH_PRESET = {
@@ -91,7 +88,6 @@ export default function HomeScreen() {
 
   const setLiveCustomSchema = useAppStore((state) => state.setLiveCustomSchema);
   const liveCustomSchema = useAppStore((state) => state.liveCustomSchema);
-  const cartCount = useAppStore((state) => state.cartCount);
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editorText, setEditorText] = useState(
@@ -133,7 +129,9 @@ export default function HomeScreen() {
               <View style={styles.brandBadge}>
                 <Text style={styles.brandBadgeText}>SDUI</Text>
               </View>
-              <Text style={styles.engineTitle}>Swiggy & Zomato Edition</Text>
+              <Text style={styles.engineTitle} numberOfLines={1}>
+                {screen?.metadata?.title ?? 'SDUI'}
+              </Text>
             </View>
 
             <View style={styles.engineRight}>
@@ -164,35 +162,18 @@ export default function HomeScreen() {
               <Text style={styles.loadingText}>Fetching SDUI Schema...</Text>
             </View>
           ) : error ? (
-            <ScrollView
-              contentContainerStyle={styles.centerContainer}
-              refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
-            >
+            <View style={styles.centerContainer}>
               <Text style={styles.errorText}>Error: {error}</Text>
               <TouchableOpacity style={styles.retryButton} onPress={refresh}>
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
-            </ScrollView>
+            </View>
           ) : screen ? (
             <View style={styles.viewportWrapper}>
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={styles.scrollBody}
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#10B981" />}
-              >
-                <SDUIRenderer node={screen.root} />
-              </ScrollView>
-
-              {/* Swiggy/Zomato Floating Cart Strip */}
-              <FloatingCartBar
-                onPress={() =>
-                  Alert.alert(
-                    'Shopping Cart',
-                    `You have ${cartCount} items in your cart. Subtotal: ₹${cartCount * 280}`
-                  )
-                }
-              />
+              <SDUIRenderer node={screen.root} refreshing={loading} onRefresh={refresh} />
+              {screen.overlay?.map((node, index) => (
+                <SDUIRenderer key={node.id ?? `overlay-${index}`} node={node} />
+              ))}
             </View>
           ) : null}
         </SafeAreaView>
@@ -224,7 +205,7 @@ export default function HomeScreen() {
                 style={styles.presetChip}
                 onPress={() => handleLoadPreset(homeSchema)}
               >
-                <Text style={styles.presetChipText}>Swiggy / Zomato</Text>
+                <Text style={styles.presetChipText}>Catalog</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.presetChip}
@@ -298,9 +279,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    marginRight: 8,
   },
   brandBadge: {
-    backgroundColor: '#10B981', // Swiggy emerald green
+    backgroundColor: '#4F46E5',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -316,6 +299,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: -0.2,
+    flexShrink: 1,
   },
   engineRight: {
     flexDirection: 'row',
@@ -357,12 +341,6 @@ const styles = StyleSheet.create({
   viewportWrapper: {
     flex: 1,
     position: 'relative',
-  },
-  scrollBody: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 110,
   },
   centerContainer: {
     flex: 1,

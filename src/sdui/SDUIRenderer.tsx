@@ -4,7 +4,9 @@ import { SDUINode, SDUITemplateContext } from './types';
 import { componentRegistry } from './ComponentRegistry';
 import { evaluateCondition } from './ConditionalEvaluator';
 import { useUserStore } from '../store/useUserStore';
+import { useAppStore } from '../store/useAppStore';
 import { themeTokens } from '../theme/tokens';
+import { trackSDUIEvent } from './analytics';
 
 // ─── Error Boundary ───────────────────────────────────────────────
 interface ErrorBoundaryProps {
@@ -51,26 +53,46 @@ class SDUIErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
 export interface SDUIRendererProps {
   node: SDUINode | null | undefined;
   context?: SDUITemplateContext;
+  /** Applied only on this node, not on descendants. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({ node, context }) => {
+const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({
+  node,
+  context,
+  refreshing,
+  onRefresh,
+}) => {
   const user = useUserStore((state) => state.user);
+  const activeCategory = useAppStore((state) => state.activeCategory);
+  const cartCount = useAppStore((state) => state.cartCount);
+  const values = useAppStore((state) => state.values);
 
   const effectiveContext: SDUITemplateContext = {
-    user,
     ...context,
+    user,
+    state: {
+      ...(context?.state && typeof context.state === 'object' ? context.state : {}),
+      activeCategory,
+      cartCount,
+      ...values,
+    },
   };
 
   // 1. Impression Analytics Auto-Tracking
   useEffect(() => {
-    if (node?.analytics?.impressionEvent) {
-      console.log(`📊 [Analytics] Impression: "${node.analytics.impressionEvent}"`, {
-        nodeId: node.id,
-        nodeType: node.type,
-        ...node.analytics.properties,
-      });
-    }
-  }, [node?.id, node?.analytics?.impressionEvent]);
+    if (!node?.analytics?.impressionEvent) return;
+    trackSDUIEvent({
+      kind: 'impression',
+      name: node.analytics.impressionEvent,
+      nodeId: node.id,
+      nodeType: node.type,
+      properties: node.analytics.properties,
+    });
+    // Re-fire when the node or event name changes. Property object identity is not part of that.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node?.id, node?.type, node?.analytics?.impressionEvent, node?.analytics?.properties]);
 
   if (!node) return null;
 
@@ -87,24 +109,21 @@ const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({ node, context }) =
   }
 
   // 3. Component Lookup with Fallback Matrix
-  let ComponentImpl = componentRegistry.get(node.type);
+  const resolved = componentRegistry.resolve(node.type, node.fallbackType);
+  const ComponentImpl = resolved?.component;
 
-  // If primary component is unknown, look for fallbackType
-  if (!ComponentImpl && node.fallbackType) {
-    ComponentImpl = componentRegistry.get(node.fallbackType);
-    if (ComponentImpl) {
-      console.info(`[SDUI] Degraded <${node.type}> to fallback <${node.fallbackType}>`);
-    }
+  if (resolved?.degraded) {
+    console.info(`[SDUI] Degraded <${node.type}> to fallback <${resolved.resolvedType}>`);
   }
 
   if (!ComponentImpl) {
     if (__DEV__) {
       return (
         <View style={styles.unknownBox}>
-          <Text style={styles.unknownTitle}>[SDUI] Unregistered Component: "{node.type}"</Text>
+          <Text style={styles.unknownTitle}>Unregistered component: {node.type}</Text>
           <Text style={styles.unknownSubtitle}>
             {node.fallbackType
-              ? `Fallback "${node.fallbackType}" was also missing`
+              ? `Fallback ${node.fallbackType} was also missing`
               : 'Register this widget in ComponentRegistry.ts'}
           </Text>
         </View>
@@ -132,6 +151,8 @@ const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({ node, context }) =
       <ComponentImpl
         node={node}
         context={effectiveContext}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         {...({ renderChildNode } as any)}
       >
         {renderedChildren}

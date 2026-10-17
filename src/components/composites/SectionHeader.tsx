@@ -11,7 +11,7 @@ export const SectionHeader: React.FC<SDUIComponentProps> = ({ node, context }) =
   const subtitle = p.subtitle ? String(p.subtitle) : null;
   const actionText = p.actionText ? String(p.actionText) : p.showSeeAll ? 'See all' : null;
 
-  const handleAction = createActionHandler(node.actions?.onAction || node.actions?.onSeeAll, context);
+  const handleAction = createActionHandler(node.actions?.onAction || node.actions?.onSeeAll, context, node);
 
   return (
     <View style={[styles.container, node.style as any]}>

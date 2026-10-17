@@ -11,7 +11,7 @@ export const Button: React.FC<SDUIComponentProps> = ({ node, context }) => {
   const variant = (p.variant as 'primary' | 'secondary' | 'outline' | 'danger') || 'primary';
   const size = (p.size as 'sm' | 'md' | 'lg') || 'md';
 
-  const handlePress = createActionHandler(node.actions?.onPress, context);
+  const handlePress = createActionHandler(node.actions?.onPress, context, node);
 
   return (
     <TouchableOpacity

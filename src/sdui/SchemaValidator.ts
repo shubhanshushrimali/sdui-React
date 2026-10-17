@@ -30,6 +30,14 @@ export const SDUIConditionSchema = z.object({
   value: z.unknown().optional(),
 });
 
+export const SDUIListFilterSchema = z.object({
+  field: z.string(),
+  operator: z
+    .enum(['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'contains', 'truthy', 'falsy', 'maxMinutes'])
+    .optional(),
+  value: z.unknown().optional(),
+});
+
 export const SDUIDataSourceSchema = z.object({
   type: z.enum(['remote', 'local', 'state']),
   url: z.string().optional(),
@@ -38,6 +46,7 @@ export const SDUIDataSourceSchema = z.object({
   body: z.record(z.string(), z.unknown()).optional(),
   stateKey: z.string().optional(),
   data: z.array(z.unknown()).optional(),
+  filters: z.record(z.string(), SDUIListFilterSchema).optional(),
 });
 
 // Lazy recursive type definition for SDUINode
@@ -79,6 +88,7 @@ export const SDUIScreenSchema = z.object({
     })
     .default({}),
   root: SDUINodeSchema,
+  overlay: z.array(SDUINodeSchema).optional(),
 });
 
 export function validateSDUIScreen(json: unknown) {

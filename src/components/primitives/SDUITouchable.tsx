@@ -11,8 +11,8 @@ export const SDUITouchable: React.FC<SDUIComponentProps> = ({ node, context, chi
   const onPressAction = node.actions?.onPress;
   const onLongPressAction = node.actions?.onLongPress;
 
-  const handlePress = createActionHandler(onPressAction, context);
-  const handleLongPress = createActionHandler(onLongPressAction, context);
+  const handlePress = createActionHandler(onPressAction, context, node);
+  const handleLongPress = createActionHandler(onLongPressAction, context, node);
 
   return (
     <TouchableOpacity

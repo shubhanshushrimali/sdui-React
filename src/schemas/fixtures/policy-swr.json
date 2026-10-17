@@ -1,0 +1,12 @@
+{
+  "screenId": "policy-swr",
+  "version": 1,
+  "metadata": {
+    "title": "Stale while revalidate",
+    "description": "The cached screen paints immediately.",
+    "cachePolicy": "stale-while-revalidate",
+    "cacheTTL": 300,
+    "transition": "modal"
+  },
+  "root": { "type": "View" }
+}

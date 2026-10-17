@@ -7,10 +7,11 @@
 
 import { Alert, Linking } from 'react-native';
 import { router } from 'expo-router';
-import { SDUIAction, SDUITemplateContext } from './types';
+import { SDUIAction, SDUINode, SDUITemplateContext } from './types';
 import { resolveActionPayload } from './TemplateResolver';
 import { fetchSDUIScreen } from '../services/schemaService';
 import { useAppStore } from '../store/useAppStore';
+import { trackNodeClick } from './analytics';
 
 type ActionHandler = (
   action: SDUIAction,
@@ -98,19 +99,26 @@ const builtinHandlers: Record<string, ActionHandler> = {
     Alert.alert(title, message);
   },
 
+  showBottomSheet: (action) => {
+    const payload = action.payload ?? {};
+    useAppStore.getState().openBottomSheet({
+      title: String(payload.title ?? 'Details'),
+      message: payload.message != null ? String(payload.message) : undefined,
+      primaryLabel: payload.primaryLabel != null ? String(payload.primaryLabel) : 'Done',
+    });
+  },
+
   setState: (action) => {
     const payload = action.payload;
     if (!payload) return;
     const store = useAppStore.getState();
 
-    if (payload.activeCategory && typeof payload.activeCategory === 'string') {
-      store.setActiveCategory(payload.activeCategory);
-    }
-    if (payload.incrementCart) {
-      store.incrementCart();
-    }
-    if (payload.toggleLike && typeof payload.toggleLike === 'string') {
-      store.toggleLike(payload.toggleLike);
+    if (payload.incrementCart) store.incrementCart();
+    if (typeof payload.toggleLike === 'string') store.toggleLike(payload.toggleLike);
+
+    for (const [key, value] of Object.entries(payload)) {
+      if (key === 'incrementCart' || key === 'toggleLike') continue;
+      store.setStateValue(key, value);
     }
   },
 
@@ -185,10 +193,12 @@ export async function dispatchAction(
 
 export function createActionHandler(
   action: SDUIAction | undefined,
-  context: SDUITemplateContext
+  context: SDUITemplateContext,
+  source?: Pick<SDUINode, 'id' | 'type' | 'analytics'>
 ): (() => void) | undefined {
-  if (!action) return undefined;
+  if (!action && !source?.analytics?.clickEvent) return undefined;
   return () => {
-    dispatchAction(action, context);
+    if (source) trackNodeClick(source);
+    if (action) void dispatchAction(action, context);
   };
 }

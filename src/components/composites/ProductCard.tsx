@@ -16,7 +16,7 @@ export const ProductCard: React.FC<SDUIComponentProps> = ({ node, context }) => 
   const tag = p.tag ? String(p.tag) : null;
   const image = (p.image as string) || (p.thumbnail as string) || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80';
 
-  const handlePress = createActionHandler(node.actions?.onPress, context);
+  const handlePress = createActionHandler(node.actions?.onPress, context, node);
 
   const likedItemIds = useAppStore((state) => state.likedItemIds);
   const toggleLike = useAppStore((state) => state.toggleLike);
