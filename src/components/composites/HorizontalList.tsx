@@ -56,9 +56,9 @@ export const HorizontalList: React.FC<ListComponentProps> = ({
     };
   }, [remoteUrl, remoteMethod, dataSource?.headers]);
 
-  const remoteData = remote?.url === remoteUrl ? remote.data : null;
+  const remoteData = remote && remote.url === remoteUrl ? remote.data : null;
   const loading = Boolean(remoteUrl) && remote?.url !== remoteUrl && failure?.url !== remoteUrl;
-  const error = failure?.url === remoteUrl ? failure.message : null;
+  const error = failure && failure.url === remoteUrl ? failure.message : null;
 
   const itemsToRender = resolveListItems(dataSource, stateValue, remoteData);
   const filteredEmpty =

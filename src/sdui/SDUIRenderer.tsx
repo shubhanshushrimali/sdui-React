@@ -90,8 +90,6 @@ const SDUIRendererComponent: React.FC<SDUIRendererProps> = ({
       nodeType: node.type,
       properties: node.analytics.properties,
     });
-    // Re-fire when the node or event name changes. Property object identity is not part of that.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id, node?.type, node?.analytics?.impressionEvent, node?.analytics?.properties]);
 
   if (!node) return null;
