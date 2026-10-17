@@ -4,6 +4,8 @@
 
 Render and reconfigure entire screens and mobile user journeys dynamically from JSON schemas — without waiting for App Store or Google Play releases.
 
+**[See a demo](https://shubhanshushrimali.github.io/sdui-React/)** — the catalog running on GitHub Pages.
+
 ---
 
 ## ✨ Features
