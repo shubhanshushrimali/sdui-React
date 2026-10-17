@@ -1,0 +1,38 @@
+name: Setup Node app
+description: Install the pinned Node.js and npm, then install from the lockfile.
+
+inputs:
+  node-version:
+    description: Node.js major version used for CI and CD
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+
+    - name: Pin npm
+      shell: bash
+      run: npm install -g npm@12.1.0
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        node_major="$(node -p "process.versions.node.split('.')[0]")"
+        npm_version="$(npm -v)"
+        echo "node $(node -v), npm ${npm_version}"
+        if [ "${node_major}" -lt 22 ]; then
+          echo "CI must run on Node.js 22 or newer."
+          exit 1
+        fi
+        if [ "${npm_version}" != "12.1.0" ]; then
+          echo "npm ${npm_version} does not match the lockfile generator (12.1.0)."
+          exit 1
+        fi
+        npm ci

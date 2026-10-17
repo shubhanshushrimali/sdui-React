@@ -1,52 +1,114 @@
 name: Deploy Web Preview (CD)
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
-  pages: write
   id-token: write
+  pages: write
 
 concurrency:
-  group: 'pages'
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Choose artifact run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      artifact_run_id: ${{ steps.pick.outputs.artifact_run_id }}
+    steps:
+      - id: pick
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "artifact_run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "artifact_run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build web bundle
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node and install
+        uses: ./.github/actions/setup-node-app
+
+      - name: Export Expo web bundle
+        run: |
+          set -euo pipefail
+          npm run export:web
+          test -f dist/index.html
+          touch dist/.nojekyll
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: expo-web-dist
+          path: dist
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true
+
   deploy:
+    name: Deploy to GitHub Pages
+    needs: [prepare, build]
+    if: >-
+      always() &&
+      needs.prepare.result == 'success' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.head_branch == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Download web bundle built by CI
+        uses: actions/download-artifact@v8
         with:
-          node-version: 20
-          cache: 'npm'
+          name: expo-web-dist
+          path: dist
+          run-id: ${{ needs.prepare.outputs.artifact_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Export Expo Web Bundle
+      - name: Keep GitHub Pages from running Jekyll
         run: |
-          npm run export:web
+          set -euo pipefail
+          test -f dist/index.html
           touch dist/.nojekyll
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
         with:
-          path: 'dist'
+          path: dist
+          include-hidden-files: true
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -35,6 +35,10 @@
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "npm@12.1.0",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -46,5 +50,8 @@
     "test:schemas": "node ./scripts/validate-schemas.js",
     "export:web": "expo export --platform web"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "protobufjs@7.6.6": true
+  }
 }
